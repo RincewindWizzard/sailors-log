@@ -2,6 +2,9 @@
 <html>
 <head>
     <title>{{ trip.title }} – Sailor’s Log</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
 </head>
 <body>
 <h1>{{ trip.title }}</h1>
@@ -15,9 +18,44 @@
 <p><a href="{{ trip.boat.info_url }}" target="_blank">Bootsinfos ansehen</a></p>
 {% endif %}
 
+
+
 {% if trip.gpx_file %}
+<div id="map" style="height: 500px;"></div>
+<script>
+    // Karte erstellen
+    const map = L.map('map');
+
+    // OpenStreetMap-Tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+
+    L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+        attribution: 'Map: © OpenSeaMap contributors',
+        transparent: true
+    }).addTo(map);
+
+    // GPX-Datei laden
+    const gpx = '{{ trip.gpx_file.url }}'; // URL der GPX-Datei
+
+    new L.GPX(gpx, {
+        async: true,
+        marker_options: {
+            startIconUrl: 'https://unpkg.com/leaflet-gpx@1.5.1/pin-icon-start.png',
+            endIconUrl: 'https://unpkg.com/leaflet-gpx@1.5.1/pin-icon-end.png',
+            shadowUrl: 'https://unpkg.com/leaflet-gpx@1.5.1/pin-shadow.png'
+        }
+    }).on('loaded', function(e) {
+        map.fitBounds(e.target.getBounds());
+    }).addTo(map);
+</script>
 <p><a href="{{ trip.gpx_file.url }}">GPX-Datei herunterladen</a></p>
+{% else %}
+<p>Kein GPX-Track vorhanden.</p>
 {% endif %}
+
 
 <p><a href="{% url 'trip_overview' %}">Zurück zur Übersicht</a></p>
 </body>
