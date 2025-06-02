@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ trip.title }} – Sailor’s Log</title>
+</head>
+<body>
+<h1>{{ trip.title }}</h1>
+<p><strong>Datum:</strong> {{ trip.date }}</p>
+<p><strong>Boot:</strong> {{ trip.boat.name }}</p>
+<p><strong>Distanz:</strong> {{ trip.distance_nm|default:"–" }} sm</p>
+<p><strong>Dauer:</strong> {{ trip.duration|default:"–" }}</p>
+<p><strong>Beschreibung:</strong><br>{{ trip.description|linebreaks }}</p>
+
+{% if trip.boat.info_url %}
+<p><a href="{{ trip.boat.info_url }}" target="_blank">Bootsinfos ansehen</a></p>
+{% endif %}
+
+{% if trip.gpx_file %}
+<p><a href="{{ trip.gpx_file.url }}">GPX-Datei herunterladen</a></p>
+{% endif %}
+
+<p><a href="{% url 'trip_overview' %}">Zurück zur Übersicht</a></p>
+</body>
+</html>
