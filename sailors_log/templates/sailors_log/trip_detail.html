@@ -4,64 +4,103 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
+
+<style>
+    /* Vollbildkarte soll über dem Content liegen */
+    #map:fullscreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 9999;
+    }
+</style>
 {% endblock %}
 
 
 {% block content %}
 
+<!-- Hero Map mit Vollbild-Button -->
+<section class="hero is-fullwidth" style="margin-bottom: 2rem; position: relative;">
+    <div id="map" style="width: 100%; height: 300px;"></div>
+    <button
+            id="fullscreenBtn"
+            class="button is-link is-light"
+            style="position: absolute; top: 1rem; right: 1rem; z-index: 1000;"
+            aria-label="Vollbild umschalten"
+            title="Vollbild umschalten"
+    >
+        <span class="icon"><i class="fas fa-expand"></i></span>
+        <span>Vollbild</span>
+    </button>
+</section>
+
+<!-- Content Container -->
 <section class="section">
-    <div class="columns is-centered is-vcentered">
-        <div class="column">
-            <div class="box">
-                <h1 class="title">
-                    {{ trip.title }}
-                </h1>
-                <p class="subtitle">{{ trip.date|rfc3339 }}</p>
-                <hr>
-                <div id="map" class="image is-4by3"></div>
-                {% if trip.gpx_file %}
-                <a href="{{ trip.gpx_file.url }}" class="card-footer-item">GPX-Datei herunterladen</a>
-                {% endif %}
-                <hr class="hr">
-                <nav class="level">
-                    <div class="level-item has-text-centered">
-                        <div>
-                            <p class="heading">Boot</p>
-                            {% if trip.boat.info_url %}
-                            <p><a href="{{ trip.boat.info_url }}" target="_blank" class="title">{{ trip.boat.name }}</a></p>
-                            {% else %}
-                            <p class="title">{{ trip.boat.name }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="level-item has-text-centered">
-                        <div>
-                            <p class="heading">Distanz</p>
-                            <p class="title">{{ trip.distance_nm|default:"–" }} sm</p>
-                        </div>
-                    </div>
-                    <div class="level-item has-text-centered">
-                        <div>
-                            <p class="heading">Dauer</p>
-                            <p class="title">{{ trip.duration|default:"–" }}</p>
-                        </div>
-                    </div>
-                </nav>
-                <hr class="hr">
-                <h2>Beschreibung</h2>
-                <p>{{ trip.description|linebreaks }}</p>
+    <div class="container" style="max-width: 960px;">
+        <div class="box" style="box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-radius: 10px;">
+            <!-- Titel und Datum -->
+            <div class="content has-text-centered mb-5">
+                <h1 class="title is-2">{{ trip.title }}</h1>
+                <p class="subtitle is-5 has-text-grey">{{ trip.date }}</p>
             </div>
+
+            <!-- Boot, Distanz, Dauer -->
+            <nav class="level is-mobile mb-5">
+                <div class="level-item has-text-centered">
+                    <div>
+                        <p class="heading">Boot</p>
+                        {% if trip.boat.info_url %}
+                        <p>
+                            <a href="{{ trip.boat.info_url }}" target="_blank" class="title is-4 has-text-link">
+                                {{ trip.boat.name }}
+                            </a>
+                        </p>
+                        {% else %}
+                        <p class="title is-4">{{ trip.boat.name }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="level-item has-text-centered">
+                    <div>
+                        <p class="heading">Distanz</p>
+                        <p class="title is-4">{{ trip.distance_nm|default:"–" }} sm</p>
+                    </div>
+                </div>
+
+                <div class="level-item has-text-centered">
+                    <div>
+                        <p class="heading">Dauer</p>
+                        <p class="title is-4">{{ trip.duration|default:"–" }}</p>
+                    </div>
+                </div>
+            </nav>
+
+            <hr>
+
+            <!-- Beschreibung -->
+            <section class="content">
+                <h2 class="title is-4">Beschreibung</h2>
+                <p style="line-height: 1.6; font-size: 1.1rem;">{{ trip.description|linebreaks }}</p>
+            </section>
+
+            {% if trip.gpx_file %}
+            <div class="has-text-right mt-5">
+                <a href="{{ trip.gpx_file.url }}" class="button is-link is-light" download>
+                    <span class="icon"><i class="fas fa-download"></i></span>
+                    <span>GPX-Datei herunterladen</span>
+                </a>
+            </div>
+            {% endif %}
         </div>
     </div>
 </section>
 
 
-
-
-
 <script>
-    // Karte erstellen
-    const map = L.map('map');
+
+        const map = L.map('map');
 
     // OpenStreetMap-Tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -87,5 +126,65 @@
     }).on('loaded', function(e) {
         map.fitBounds(e.target.getBounds());
     }).addTo(map);
+
+
+
+    // GPX-Download Control hinzufügen
+const GPXDownloadControl = L.Control.extend({
+  onAdd: function(map) {
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+    container.style.backgroundColor = 'white';
+    container.style.padding = '2px 6px';
+    container.style.cursor = 'pointer';
+    container.style.fontSize = '14px';
+    container.style.lineHeight = '1.2';
+    container.style.borderRadius = '4px';
+    container.title = "GPX-Datei herunterladen";
+
+    container.innerHTML = `<a href="{{ trip.gpx_file.url }}" download style="color: #007bff; text-decoration: none;">
+      <i class="fas fa-download"></i> GPX Download
+    </a>`;
+
+    // Verhindert, dass Klicks auf das Control die Karte verschieben
+    L.DomEvent.disableClickPropagation(container);
+    return container;
+  },
+
+  onRemove: function(map) {
+    // Nichts nötig hier
+  }
+});
+
+// Control unten rechts hinzufügen (Position 'bottomright')
+map.addControl(new GPXDownloadControl({ position: 'bottomright' }));
+
+
+
+
+    // Vollbild-Button Logik
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const mapDiv = document.getElementById('map');
+
+    fullscreenBtn.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        mapDiv.requestFullscreen().catch(err => alert(`Fehler beim Vollbild: ${err.message}`));
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    // Karte bei Vollbildänderung neu rendern
+    document.addEventListener('fullscreenchange', () => {
+      map.invalidateSize();
+
+  if (document.fullscreenElement) {
+    // Wenn Vollbild aktiv: auf GPX-Track zoomen und zentrieren
+    if (polyline) {
+      map.fitBounds(polyline.getBounds());
+    }
+  }
+    });
+
+
 </script>
 {% endblock %}
