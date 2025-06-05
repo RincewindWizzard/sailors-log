@@ -1,27 +1,64 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ trip.title }} – Sailor’s Log</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
-</head>
-<body>
-<h1>{{ trip.title }}</h1>
-<p><strong>Datum:</strong> {{ trip.date }}</p>
-<p><strong>Boot:</strong> {{ trip.boat.name }}</p>
-<p><strong>Distanz:</strong> {{ trip.distance_nm|default:"–" }} sm</p>
-<p><strong>Dauer:</strong> {{ trip.duration|default:"–" }}</p>
-<p><strong>Beschreibung:</strong><br>{{ trip.description|linebreaks }}</p>
-
-{% if trip.boat.info_url %}
-<p><a href="{{ trip.boat.info_url }}" target="_blank">Bootsinfos ansehen</a></p>
-{% endif %}
+{% extends "base.html" %}
+{% load datetime_filters %}
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
+{% endblock %}
 
 
+{% block content %}
 
-{% if trip.gpx_file %}
-<div id="map" style="height: 500px;"></div>
+<section class="section">
+    <div class="columns is-centered is-vcentered">
+        <div class="column">
+            <div class="box">
+                <h1 class="title">
+                    {{ trip.title }}
+                </h1>
+                <p class="subtitle">{{ trip.date|rfc3339 }}</p>
+                <hr>
+                <div id="map" class="image is-4by3"></div>
+                {% if trip.gpx_file %}
+                <a href="{{ trip.gpx_file.url }}" class="card-footer-item">GPX-Datei herunterladen</a>
+                {% endif %}
+                <hr class="hr">
+                <nav class="level">
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading">Boot</p>
+                            {% if trip.boat.info_url %}
+                            <p><a href="{{ trip.boat.info_url }}" target="_blank" class="title">{{ trip.boat.name }}</a></p>
+                            {% else %}
+                            <p class="title">{{ trip.boat.name }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading">Distanz</p>
+                            <p class="title">{{ trip.distance_nm|default:"–" }} sm</p>
+                        </div>
+                    </div>
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading">Dauer</p>
+                            <p class="title">{{ trip.duration|default:"–" }}</p>
+                        </div>
+                    </div>
+                </nav>
+                <hr class="hr">
+                <h2>Beschreibung</h2>
+                <p>{{ trip.description|linebreaks }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+
+
 <script>
     // Karte erstellen
     const map = L.map('map');
@@ -51,12 +88,4 @@
         map.fitBounds(e.target.getBounds());
     }).addTo(map);
 </script>
-<p><a href="{{ trip.gpx_file.url }}">GPX-Datei herunterladen</a></p>
-{% else %}
-<p>Kein GPX-Track vorhanden.</p>
-{% endif %}
-
-
-<p><a href="{% url 'trip_overview' %}">Zurück zur Übersicht</a></p>
-</body>
-</html>
+{% endblock %}
