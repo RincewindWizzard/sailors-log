@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class SailorsLogConfig(AppConfig):
+class SailorsLogAppConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "sailors_log"
+    name = "sailors_log_app"
