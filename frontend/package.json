@@ -1,0 +1,16 @@
+{
+  "name": "sailors-log-frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "keywords": [],
+  "author": "RincewindWizzard",
+  "license": "LGPL-3.0-or-later",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
