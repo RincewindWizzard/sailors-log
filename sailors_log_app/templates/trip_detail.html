@@ -2,23 +2,12 @@
 {% load static %}
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/leaflet.css' %}"/>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>
-
-<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.5.1/gpx.min.js"></script>-->
-
+<script src="{% static 'js/leaflet.js' %}"></script>
+<script src="{% static 'js/gpx.min.js' %}"></script>
+<script>
+  const gpx = '{{ trip.gpx_file.url }}';
+</script>
 <script  src="{% static 'js/trip_detail.js' %}" defer></script>
-<style>
-  /* Vollbildkarte soll über dem Content liegen */
-  #map:fullscreen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    width: 100% !important;
-    height: 100% !important;
-    z-index: 9999;
-  }
-</style>
 {% endblock %}
 
 
