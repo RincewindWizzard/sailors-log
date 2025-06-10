@@ -1,8 +1,10 @@
 import gpxpy
+from django.db.models import Sum
 from django.shortcuts import render, get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 
 from .forms import TripForm
-from .models import Trip
+from .models import Trip, Boat
 from .trip_statistics import distance_travelled, duration_travelled, course_histogram, speed_graph
 
 
@@ -23,10 +25,12 @@ def trip_detail(request, pk):
     context = dict(
         trip=trip,
         course_histogram=course_histogram(gpx),
-        speed_graph=[dict(x=t[0], y=t[1]) for t in speed_graph(gpx)]
+        speed_graph=[dict(x=t[0], y=t[1]) for t in speed_graph(gpx)],
+        hull_speed=trip.boat.hull_speed_kn
     )
 
     return render(request, 'trip_detail.html', context)
+
 
 def create_trip(request):
     if request.method == 'POST':
@@ -37,3 +41,20 @@ def create_trip(request):
     else:
         form = TripForm()
     return render(request, 'trip_create.html', {'form': form})
+
+
+@require_POST
+def trip_delete(request, pk):
+    trip = get_object_or_404(Trip, pk=pk)
+    trip.delete()
+    return redirect('trip_list')
+
+
+def boat_statistics(request):
+    stats = (
+        Boat.objects.annotate(
+            total_nm=Sum('trip__distance_nm'),
+            total_duration=Sum('trip__duration')
+        ).order_by('-total_nm')
+    )
+    return render(request, 'boat_statistics.html', {'stats': stats})

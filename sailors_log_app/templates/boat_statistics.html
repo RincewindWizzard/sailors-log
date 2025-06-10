@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title">Seemeilen pro Boot</h1>
+
+    <table class="table is-fullwidth is-striped is-hoverable">
+      <thead>
+      <tr>
+        <th>Boot</th>
+        <th>Dauer</th>
+        <th class="has-text-right">Seemeilen</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for boat in stats %}
+      <tr>
+        <td>
+          {% if boat.info_url %}
+          <a href="{{ boat.info_url }}" target="_blank">{{ boat.name }}</a>
+          {% else %}
+          {{ boat.name }}
+          {% endif %}
+        </td>
+        <td>
+          {% if boat.total_duration %}
+          {{ boat.total_duration }}
+          {% else %}
+          –
+          {% endif %}
+        </td>
+        <td class="has-text-right">{{ boat.total_nm|floatformat:2|intcomma|default:"–" }} sm</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</section>
+{% endblock %}

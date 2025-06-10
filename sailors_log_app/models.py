@@ -1,3 +1,5 @@
+from math import sqrt
+
 import gpxpy
 from django.db import models
 
@@ -14,6 +16,12 @@ class Boat(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def hull_speed_kn(self):
+        if self.length_m:
+            return round(2.43 * sqrt(self.length_m), 2)
+        return None
 
 
 class Trip(models.Model):

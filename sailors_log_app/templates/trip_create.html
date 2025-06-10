@@ -4,6 +4,7 @@
 {% load form_filters %}
 
 {% block head %}
+<script src="{% static 'js/trip_create.js' %}" defer></script>
 {% endblock %}
 
 
@@ -25,6 +26,25 @@
         {% if form.title.errors %}
         <p class="help is-danger">{{ form.title.errors.0 }}</p>
         {% endif %}
+      </div>
+
+      <!-- GPX-Datei -->
+      <div class="field">
+        <label class="label">GPX-Datei</label>
+        <div class="file has-name is-fullwidth">
+          <label class="file-label">
+            {{ form.gpx_file|add_class:"file-input" }}
+            <span class="file-cta">
+        <span class="file-icon">
+          <i class="fas fa-upload"></i>
+        </span>
+        <span class="file-label">Datei auswählen…</span>
+      </span>
+            <span class="file-name" id="gpx-file-name">
+        Keine Datei ausgewählt
+      </span>
+          </label>
+        </div>
       </div>
 
       <!-- Boot -->
@@ -49,26 +69,6 @@
         {% endif %}
       </div>
 
-      <!-- GPX-Datei -->
-      <div class="field">
-        <label class="label">GPX-Datei hochladen</label>
-        <div class="file has-name is-boxed">
-          <label class="file-label">
-            {{ form.gpx_file }}
-            <span class="file-cta">
-                            <span class="file-icon">
-                                📂
-                            </span>
-                            <span class="file-label">
-                                Datei auswählen
-                            </span>
-                        </span>
-          </label>
-        </div>
-        {% if form.gpx_file.errors %}
-        <p class="help is-danger">{{ form.gpx_file.errors.0 }}</p>
-        {% endif %}
-      </div>
 
       <!-- Speichern -->
       <div class="field">

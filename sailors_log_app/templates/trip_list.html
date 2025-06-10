@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% load humanize %}
+{% load static %}
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/trip_list.css' %}"/>
+{% endblock %}
+
 {% block content %}
 <section class="section">
     <div class="container">
@@ -9,38 +14,35 @@
         <div class="columns is-multiline">
             {% for trip in trips %}
             <div class="column is-full">
-                <div class="card">
-                    <div class="card-content">
-                        <!-- Oberer Bereich: Titel + Distanz/Dauer -->
-                        <div class="is-flex is-justify-content-space-between is-align-items-start is-flex-wrap-wrap mb-2">
-                            <p class="title is-5 mb-1">
-                                <a href="{% url 'trip_detail' trip.pk %}">
-                                    {{ trip.title }}
-                                </a>
-                            </p>
-                            <div>
-                                {% if trip.distance_nm %}
-                                <span class="tag is-info is-light mr-1 mb-1">🚩 {{ trip.distance_nm }} sm</span>
-                                {% endif %}
-                                {% if trip.duration %}
-                                <span class="tag is-success is-light mb-1">⏱ {{ trip.duration }}</span>
-                                {% endif %}
+                <a href="{% url 'trip_detail' trip.pk %}" class="card-link">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="is-flex is-justify-content-space-between is-align-items-start mb-2">
+                                <!-- Titel und Datum -->
+                                <div>
+                                    <p class="title is-5 mb-1 has-text-link">{{ trip.title }}</p>
+                                    <p class="subtitle is-6 mb-0">{{ trip.date }} mit {{ trip.boat.name }}</p>
+                                </div>
+
+                                <!-- Distanz + Dauer -->
+                                <div class="has-text-right">
+                                    {% if trip.distance_nm %}
+                                    <span class="tag is-info is-light">🚩 {{ trip.distance_nm }} sm</span>
+                                    {% endif %}
+                                    {% if trip.duration %}
+                                    <span class="tag is-success is-light">⏱ {{ trip.duration }}</span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-
-                        <!-- Untertitel -->
-                        <p class="subtitle is-6 mb-0">
-                            {{ trip.date }} mit {{ trip.boat.name }}
-                        </p>
                     </div>
-                </div>
+                </a>
             </div>
             {% endfor %}
+
         </div>
         {% else %}
-        <div class="notification is-warning">
-            Keine Törns vorhanden.
-        </div>
+        <div class="notification is-warning">Keine Törns vorhanden.</div>
         {% endif %}
 
         <div class="mt-4">

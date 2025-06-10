@@ -39,7 +39,7 @@ def create_boats(apps, schema_editor):
     harald_blauzahn.save()
 
     ingling: sailors_log_app.models.Boat = Boat()
-    ingling.name = 'Filou'
+    ingling.name = 'Dipl.Ing.ling'
     ingling.info_url = 'https://segelgruppe-kiel.de/dipl-ing-ling/'
     ingling.length_m = 6.35
     ingling.beam_m = 1.73
