@@ -1,10 +1,12 @@
 import gpxpy
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
+
+from .forms import TripForm
 from .models import Trip
 from .trip_statistics import distance_travelled, duration_travelled, course_histogram, speed_graph
 
 
-def trip_overview(request):
+def trip_list(request):
     trips = Trip.objects.all().order_by('-date')
     return render(request, 'trip_list.html', {'trips': trips})
 
@@ -25,3 +27,13 @@ def trip_detail(request, pk):
     )
 
     return render(request, 'trip_detail.html', context)
+
+def create_trip(request):
+    if request.method == 'POST':
+        form = TripForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('trip_list')  # or wherever you want to go
+    else:
+        form = TripForm()
+    return render(request, 'trip_create.html', {'form': form})

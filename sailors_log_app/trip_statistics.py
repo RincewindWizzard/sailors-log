@@ -58,7 +58,7 @@ def course_histogram(gpx: GPX, buckets=16) -> list[float]:
     bearing_histogram = [0] * buckets
 
     for bearing in bearings:
-        bearing_bucket = int(((bearing-(360 / buckets / 2)) % 360) / 360 * buckets)
+        bearing_bucket = int(((bearing) % 360) / 360 * buckets)
         bearing_histogram[bearing_bucket] += 1
 
     total_count = sum(bearing_histogram)
