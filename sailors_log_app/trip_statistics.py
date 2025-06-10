@@ -1,5 +1,6 @@
 import itertools
 import math
+from typing import Iterable
 
 import gpxpy
 import gpxpy.gpx
@@ -35,22 +36,29 @@ def duration_travelled(gpx: GPX) -> timedelta:
     return end_time - start_time
 
 
-def course_histogram(gpx: GPX, buckets=16):
-    points = []
-
+def extract_points(gpx: GPX) -> Iterable[GPXTrackPoint]:
     for track in gpx.tracks:
         for segment in track.segments:
             for point in segment.points:
-                points.append(point)
+                yield point
 
-    lines = zip(points[:-1], points[1:])
-    bearings = [calculate_initial_compass_bearing(*line) for line in lines]
+
+def extract_line_segments(gpx: GPX) -> Iterable[tuple[GPXTrackPoint, GPXTrackPoint]]:
+    points = list(extract_points(gpx))
+    return zip(points[:-1], points[1:])
+
+
+def course_histogram(gpx: GPX, buckets=16) -> list[float]:
+    bearings = [
+        calculate_initial_compass_bearing(*line)
+        for line in extract_line_segments(gpx)
+    ]
 
     # ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
     bearing_histogram = [0] * buckets
 
     for bearing in bearings:
-        bearing_bucket = int((bearing % 360) / 360 * buckets)
+        bearing_bucket = int(((bearing-(360 / buckets / 2)) % 360) / 360 * buckets)
         bearing_histogram[bearing_bucket] += 1
 
     total_count = sum(bearing_histogram)
@@ -58,6 +66,19 @@ def course_histogram(gpx: GPX, buckets=16):
     bearing_histogram_normalized = [float(x) / total_count for x in bearing_histogram]
 
     return bearing_histogram_normalized
+
+
+def speed_graph(gpx: GPX):
+    result = []
+    for start, end in extract_line_segments(gpx):
+        time_delta = end.time - start.time
+        distance = geodesic((start.latitude, start.longitude), (end.latitude, end.longitude)).nm
+        hours = time_delta.seconds / 60 / 60
+        result.append((
+            (start.time + (time_delta / 2)).isoformat(),
+            distance / hours)
+        )
+    return result
 
 
 def calculate_initial_compass_bearing(point_a: GPXTrackPoint, point_b: GPXTrackPoint) -> float:

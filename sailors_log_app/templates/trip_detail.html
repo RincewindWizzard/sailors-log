@@ -3,13 +3,19 @@
 {% load humanize %}
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/leaflet.css' %}"/>
+<link rel="stylesheet" href="{% static 'css/trip_detail.css' %}"/>
+
+<script src="https://kit.fontawesome.com/5efd875eb0.js" crossorigin="anonymous" defer></script>
 <script src="{% static 'js/leaflet.js' %}"></script>
 <script src="{% static 'js/gpx.min.js' %}"></script>
 <script src="{% static 'js/chart.js' %}"></script>
+<script src="{% static 'js/chartjs-adapter-date-fns.js' %}"></script>
+
 <script>
     // redirect the context to javascript
     const gpx = '{{ trip.gpx_file.url }}';
-    const course_histogram = {{ course_histogram }};
+    const course_histogram = {{ course_histogram|safe }};
+    const speed_graph = {{ speed_graph|safe }};
 </script>
 <script src="{% static 'js/trip_detail.js' %}" defer></script>
 {% endblock %}
@@ -17,82 +23,85 @@
 
 {% block content %}
 
-<!-- Hero Map mit Vollbild-Button -->
-<section class="hero is-fullwidth" style="margin-bottom: 2rem; position: relative;">
-    <div id="map" style="width: 100%; height: 300px;"></div>
-    <button
-            id="fullscreenBtn"
-            class="button is-link is-light"
-            style="position: absolute; top: 1rem; right: 1rem; z-index: 1000;"
-            aria-label="Vollbild umschalten"
-            title="Vollbild umschalten"
-    >
-        <span class="icon"><i class="fas fa-expand"></i></span>
-        <span>Vollbild</span>
-    </button>
-</section>
-
 <!-- Content Container -->
 <section class="section">
-    <div class="container" style="max-width: 960px;">
-        <div class="box">
-            <!-- Titel und Datum -->
-            <div class="content has-text-centered mb-5">
-                <h1 class="title is-2">{{ trip.title }}</h1>
-                <p class="subtitle is-5 has-text-grey">{{ trip.date }}</p>
+    <div class="container">
+        <div class="grid">
+            <div class="box cell is-col-span-6">
+                <div id="map" style="width: 100%; height: 100%; min-height: 50em;"></div>
+                <button
+                        id="fullscreenBtn"
+                        class="button is-link is-light"
+                        style="position: absolute; top: 1rem; right: 1rem; z-index: 1000;"
+                        aria-label="Vollbild umschalten"
+                        title="Vollbild umschalten"
+                >
+                    <span class="icon"><i class="fas fa-expand"></i></span>
+                    <span>Vollbild</span>
+                </button>
             </div>
-
-            <!-- Boot, Distanz, Dauer -->
-            <nav class="level is-mobile mb-5">
-                <div class="level-item has-text-centered">
-                    <div>
-                        <p class="heading">Boot</p>
-                        {% if trip.boat.info_url %}
-                        <p>
-                            <a href="{{ trip.boat.info_url }}" target="_blank" class="title is-4 has-text-link">
-                                {{ trip.boat.name }}
-                            </a>
-                        </p>
-                        {% else %}
-                        <p class="title is-4">{{ trip.boat.name }}</p>
-                        {% endif %}
-                    </div>
+            <div class="box cell is-col-span-3">
+                <!-- Titel und Datum -->
+                <div class="content has-text-centered mb-5">
+                    <h1 class="title is-2">{{ trip.title }}</h1>
+                    <p class="subtitle is-5 has-text-grey">{{ trip.date }}</p>
                 </div>
 
-                <div class="level-item has-text-centered">
-                    <div>
-                        <p class="heading">Distanz</p>
-                        <p class="title is-4">{{ trip.distance_nm|floatformat:2|intcomma|default:"–" }} sm</p>
+                <!-- Boot, Distanz, Dauer -->
+                <nav class="level is-mobile mb-5">
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading">Boot</p>
+                            {% if trip.boat.info_url %}
+                            <p>
+                                <a href="{{ trip.boat.info_url }}" target="_blank" class="title is-4 has-text-link">
+                                    {{ trip.boat.name }}
+                                </a>
+                            </p>
+                            {% else %}
+                            <p class="title is-4">{{ trip.boat.name }}</p>
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
 
-                <div class="level-item has-text-centered">
-                    <div>
-                        <p class="heading">Dauer</p>
-                        <p class="title is-4">{{ trip.duration|default:"–" }}</p>
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading">Distanz</p>
+                            <p class="title is-4">{{ trip.distance_nm|floatformat:2|intcomma|default:"–" }} sm</p>
+                        </div>
                     </div>
+
+                    <div class="level-item has-text-centered">
+                        <div>
+                            <p class="heading">Dauer</p>
+                            <p class="title is-4">{{ trip.duration|default:"–" }}</p>
+                        </div>
+                    </div>
+                </nav>
+
+                <hr>
+
+                <!-- Beschreibung -->
+                <section class="content">
+                    <h2 class="title is-4">Beschreibung</h2>
+                    <p style="line-height: 1.6; font-size: 1.1rem;">{{ trip.description|linebreaks }}</p>
+                </section>
+
+                {% if trip.gpx_file %}
+                <div class="has-text-right mt-5">
+                    <a href="{{ trip.gpx_file.url }}" class="button is-link is-light" download>
+                        <span class="icon"><i class="fas fa-download"></i></span>
+                        <span>GPX-Datei herunterladen</span>
+                    </a>
                 </div>
-            </nav>
-
-            <hr>
-
-            <!-- Beschreibung -->
-            <section class="content">
-                <h2 class="title is-4">Beschreibung</h2>
-                <p style="line-height: 1.6; font-size: 1.1rem;">{{ trip.description|linebreaks }}</p>
-            </section>
-
-            {% if trip.gpx_file %}
-            <div class="has-text-right mt-5">
-                <a href="{{ trip.gpx_file.url }}" class="button is-link is-light" download>
-                    <span class="icon"><i class="fas fa-download"></i></span>
-                    <span>GPX-Datei herunterladen</span>
-                </a>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
-        <div class="box">
-            <canvas id="bearings_histogram"></canvas>
+            <div class="box cell is-col-span-3">
+                <canvas id="speed_graph" style="width: 100%; height: 100%;"></canvas>
+            </div>
+            <div class="box cell is-col-span-3">
+                <canvas id="bearings_histogram" style="width: 100%; height: 100%;"></canvas>
+            </div>
         </div>
     </div>
 </section>
