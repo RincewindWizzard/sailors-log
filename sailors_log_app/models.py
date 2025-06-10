@@ -46,6 +46,17 @@ class Trip(models.Model):
             self.title = f'{self.date}_{self.boat.name}'
         super().save(*args, **kwargs)
 
+    @property
+    def gpx_points(self):
+        if not hasattr(self, '_gpx_points'):
+            self._gpx_points = []
+            gpx = gpxpy.parse(self.gpx_file.read().decode("utf-8"))
+            for track in gpx.tracks:
+                for segment in track.segments:
+                    for point in segment.points:
+                        self._gpx_points.append(point)
+        return self._gpx_points
+
     def _parse_gpx(self):
         self.gpx_file.seek(0)  # Datei-Zeiger auf Anfang setzen
 
@@ -70,3 +81,27 @@ class Trip(models.Model):
         self.distance_nm = round(total_length_m / 1852, 2)  # Meter → Seemeilen
         if start_time and end_time:
             self.duration = end_time - start_time
+
+
+class WeatherSnapshot(models.Model):
+    trip = models.ForeignKey("Trip", on_delete=models.CASCADE, related_name="weather_snapshots")
+    timestamp = models.DateTimeField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+
+    temperature = models.FloatField(null=True, blank=True)
+    rain = models.FloatField(null=True, blank=True)
+    weather_code = models.IntegerField(null=True, blank=True)
+    visibility = models.FloatField(null=True, blank=True)
+    wind_direction = models.FloatField(null=True, blank=True)
+    wind_speed = models.FloatField(null=True, blank=True)
+    wind_gusts = models.FloatField(null=True, blank=True)
+    cloud_cover = models.FloatField(null=True, blank=True)
+    cloud_cover_low = models.FloatField(null=True, blank=True)
+    cloud_cover_mid = models.FloatField(null=True, blank=True)
+    cloud_cover_high = models.FloatField(null=True, blank=True)
+    pressure_msl = models.FloatField(null=True, blank=True)
+    surface_pressure = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.trip} – {self.timestamp}"

@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'django.contrib.humanize',
-    "sailors_log_app",
+    'background_task',
+    'sailors_log_app.apps.SailorsLogAppConfig',
 ]
 
 MIDDLEWARE = [
@@ -98,6 +99,21 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'sailors_log_app': {
+            'handlers': ['console'],
+            'level': 'INFO',  # oder 'DEBUG' für mehr Details
+            'propagate': True,
+        },
+    },
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
