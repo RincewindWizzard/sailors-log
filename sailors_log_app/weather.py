@@ -1,9 +1,10 @@
 import logging
-from datetime import timedelta, datetime
-from typing import Iterable
+from datetime import timedelta, datetime, timezone, tzinfo
+from typing import Iterable, Any
 
 import requests
 from django.utils.timezone import make_aware
+from gpxpy.gpx import GPXTrackPoint
 
 from sailors_log_app.models import Trip, WeatherSnapshot
 
@@ -12,17 +13,13 @@ logger = logging.getLogger(__name__)
 OPEN_METEO_API = "https://api.open-meteo.com/v1/forecast"
 
 
-def fetch_weather_for_trip(trip: Trip):
-    logger.info(f"Fetching weather info for Trip {trip.id} on {trip.date}")
-
-    gpx_point = trip.gpx_points[0]
-
-    start_date = trip.date.isoformat()
-    end_date = (trip.date + timedelta(days=1)).isoformat()
-
+def fetch_weather(instant: datetime, latitude: float, longitude: float) -> dict:
+    """
+    Fetches the weather for this position on earth for the whole day where instant took place.
+    """
     params = {
-        "latitude": gpx_point.latitude,
-        "longitude": gpx_point.longitude,
+        "latitude": latitude,
+        "longitude": longitude,
         "hourly": ",".join([
             "temperature_2m", "rain", "weather_code", "visibility",
             "wind_direction_10m", "wind_speed_10m", "wind_gusts_10m",
@@ -30,45 +27,66 @@ def fetch_weather_for_trip(trip: Trip):
             "cloud_cover_high", "pressure_msl", "surface_pressure"
         ]),
         "wind_speed_unit": "kn",
-        "start_date": start_date,
-        "end_date": end_date,
+        "start_date": instant.date().isoformat(),
+        "end_date": (instant + timedelta(days=2)).date().isoformat(),
         "timezone": "UTC"
     }
 
-    try:
-        response = requests.get(OPEN_METEO_API, params=params)
-        response.raise_for_status()
-        data = response.json()
-
-        logger.info(data)
-
-        for weather_snapshot in parse_weather(data):
-            WeatherSnapshot(
-                trip=trip,
-                **weather_snapshot
-            ).save()
+    response = requests.get(OPEN_METEO_API, params=params)
+    response.raise_for_status()
+    data = response.json()
+    logger.info(f'Got weather data = {data}')
+    return data
 
 
-    except Exception as e:
-        logger.error(f"Fehler beim Abrufen der Wetterdaten: {e}")
-
-
-def parse_weather(data: dict) -> Iterable[dict]:
-    hours = data['hourly']['time']
-
-    for i, ts in enumerate(hours):
-        weather = dict(
-            latitude=data['latitude'],
-            longitude=data['longitude'],
-            timestamp=make_aware(datetime.fromisoformat(ts)),
-            temperature=data['hourly']['temperature_2m'][i],
-            rain=data['hourly']['rain'][i],
-            wind_speed=data['hourly']['wind_speed_10m'][i],
-            wind_gusts=data['hourly']['wind_gusts_10m'][i],
-            wind_direction=data['hourly']['wind_direction_10m'][i],
-            cloud_cover=data['hourly']['cloud_cover'][i],
-            pressure_msl=data['hourly']['pressure_msl'][i],
-            surface_pressure=data['hourly']['surface_pressure'][i],
-            weather_code=data['hourly']['weather_code'][i],
+def reduce_points_to_hourly(points: list[GPXTrackPoint]) -> list[tuple[datetime, float, float]]:
+    """
+    Reduces a list of GPXTrackPoints to only one (average) position every hour.
+    """
+    hourly_positions = []
+    current_hour = None
+    current_positions = []
+    for point in points:
+        hour = datetime(
+            year=point.time.year,
+            month=point.time.month,
+            day=point.time.day,
+            hour=point.time.hour,
+            tzinfo=timezone.utc
         )
-        yield weather
+
+        if current_hour == hour or not current_hour or len(current_positions) == 0:
+            current_positions.append((point.latitude, point.longitude))
+            current_hour = hour
+        else:
+            lat_sum = 0
+            lon_sum = 0
+            for lat, lon in current_positions:
+                lat_sum += lat
+                lon_sum += lon
+            hourly_positions.append(
+                (hour, float(lat_sum / len(current_positions)), float(lon_sum / len(current_positions))))
+            current_positions = []
+    return hourly_positions
+
+
+def generate_weather_data_matrix(points: list[GPXTrackPoint]) -> list[tuple[datetime, float, float, dict]]:
+    """
+    Fetches hourly weather data for a list of GPXTrackPoints.
+    :param points:
+    :return:
+    """
+    hourly_weather = []
+    hourly_positions = reduce_points_to_hourly(points)
+    logger.info(f'hourly_positions = {hourly_positions}')
+    for instant, lat, lon in hourly_positions:
+        weather = fetch_weather(instant, lat, lon)
+        data = weather['hourly']
+
+        transposed = [dict(zip(data.keys(), values)) for values in zip(*data.values())]
+
+        for weather_entry in transposed:
+            if datetime.fromisoformat(weather_entry['time']).replace(tzinfo=timezone.utc) == instant:
+                hourly_weather.append((instant, lat, lon, weather_entry))
+                break
+    return hourly_weather

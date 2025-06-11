@@ -2,6 +2,7 @@ from math import sqrt
 
 import gpxpy
 from django.db import models
+from gpxpy.gpx import GPXTrackPoint
 
 
 class Boat(models.Model):
@@ -47,7 +48,7 @@ class Trip(models.Model):
         super().save(*args, **kwargs)
 
     @property
-    def gpx_points(self):
+    def gpx_points(self) -> list[GPXTrackPoint]:
         if not hasattr(self, '_gpx_points'):
             self._gpx_points = []
             gpx = gpxpy.parse(self.gpx_file.read().decode("utf-8"))
