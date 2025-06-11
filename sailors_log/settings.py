@@ -24,7 +24,7 @@ if SECRET_KEY == 'unsafe-secret-key-please-change' and ENVIRONMENT == 'PROD':
     raise ValueError('Secret key has not been set!')
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=lambda v: [s.strip() for s in v.split(',')])
-
+STATIC_ROOT = config('STATIC_ROOT', default='/tmp/sailors-log')
 # Application definition
 
 INSTALLED_APPS = [
