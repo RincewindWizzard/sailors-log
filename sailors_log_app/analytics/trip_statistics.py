@@ -1,14 +1,18 @@
 import itertools
+import logging
 import math
 
 from typing import Iterable, TypeVar, Dict, Hashable, Protocol, runtime_checkable, Any
 
+from django.utils.http import escape_leading_slashes
 from gpxpy.gpx import GPX, GPXTrackPoint
 from geopy.distance import geodesic
 from datetime import timedelta, datetime, timezone
 
 from sailors_log_app.constants import WindCourse
 from sailors_log_app.models import Trip
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -58,6 +62,7 @@ def extract_line_segments(points: list[GPXTrackPoint]) -> Iterable[tuple[GPXTrac
 
 def bearing_histogram(points: list[GPXTrackPoint], buckets=16) -> dict[int, SupportsAdd | Any]:
     bucket_names = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+
     def bucket(bearing: float) -> int:
         return bucket_names[round((bearing % 360) / 360 * buckets) % buckets]
 
@@ -135,10 +140,16 @@ def calculate_wind_course_histogram(trip: Trip):
     def data(p0, p1):
         bearing = calculate_bearing(p0, p1)
         wind_direction = trip.weather.wind_direction_at(p0.time)
+        if wind_direction is None:
+            raise ValueError(f'Missing wind data for {trip.title}')
         wind_course = WindCourse.for_angle(abs(wind_direction - bearing))
         return wind_course, (p0.time - p1.time).seconds
 
-    return normalize_histogram(create_histogram([data(*line) for line in trip.gpx_lines]))
+    try:
+        return normalize_histogram(create_histogram([data(*line) for line in trip.gpx_lines]))
+    except ValueError as e:
+        logger.warn(e)
+        return None
 
 
 def create_histogram(ts: Iterable[tuple[K, V]]) -> Dict[K, V]:

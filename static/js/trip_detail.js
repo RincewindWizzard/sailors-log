@@ -93,72 +93,61 @@ function drawBearingsHistogram() {
 function drawWindCourseHistogram() {
     const ctx = document.getElementById('wind_course_histogram');
     const wind_course_histogram = data.wind_course_histogram;
-    console.log(wind_course_histogram);
-    /*
-    NO_GO_ZONE = (330, 30)
 
-    CLOSE_HAULED_STARBOARD = (30, 45)
-    HAULED_STARBOARD = (45, 80)
-    BEAM_REACH_STARBOARD = (80, 100)
-    BROAD_REACH_STARBOARD = (100, 160)
+    if (wind_course_histogram) {
+        console.log(wind_course_histogram);
 
-    RUNNING = (160, 200)
 
-    CLOSE_HAULED_PORT = (315, 330)
-    HAULED_PORT = (280, 315)
-    BEAM_REACH_PORT = (260, 280)
-    BROAD_REACH_PORT = (200, 260)
-    * */
+        var labels = ["Toter Winkel", "Hart am Wind", "Am Wind", "Halbwind", "Raumschots", "Vorwind"];
+        labels = labels.concat(labels.slice(1, -1).reverse());
+        const dataValues = [
+            wind_course_histogram.NO_GO_ZONE,
+            wind_course_histogram.CLOSE_HAULED_STARBOARD,
+            wind_course_histogram.HAULED_STARBOARD,
+            wind_course_histogram.BEAM_REACH_STARBOARD,
+            wind_course_histogram.BROAD_REACH_STARBOARD,
+            wind_course_histogram.RUNNING,
+            wind_course_histogram.BROAD_REACH_PORT,
+            wind_course_histogram.BEAM_REACH_PORT,
+            wind_course_histogram.HAULED_PORT,
+            wind_course_histogram.CLOSE_HAULED_PORT
+        ];
 
-    var labels = ["Toter Winkel", "Hart am Wind", "Am Wind", "Halbwind", "Raumschots", "Vorwind"];
-    labels = labels.concat(labels.slice(1, -1).reverse());
-    const dataValues = [
-        wind_course_histogram.NO_GO_ZONE,
-        wind_course_histogram.CLOSE_HAULED_STARBOARD,
-        wind_course_histogram.HAULED_STARBOARD,
-        wind_course_histogram.BEAM_REACH_STARBOARD,
-        wind_course_histogram.BROAD_REACH_STARBOARD,
-        wind_course_histogram.RUNNING,
-        wind_course_histogram.BROAD_REACH_PORT,
-        wind_course_histogram.BEAM_REACH_PORT,
-        wind_course_histogram.HAULED_PORT,
-        wind_course_histogram.CLOSE_HAULED_PORT
-    ];
-
-    new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Prozentualer Anteil der Windkurse zum Gesamttörn',
-                data: dataValues,
-                borderWidth: 1,
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                pointBackgroundColor: 'rgba(54, 162, 235, 1)'
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: false // 👈 Legende deaktivieren
-                }
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Prozentualer Anteil der Windkurse zum Gesamttörn',
+                    data: dataValues,
+                    borderWidth: 1,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+                }]
             },
-            scales: {
-                r: {
-                    beginAtZero: true,
-                    min: 0,
-                    ticks: {
-                        //stepSize: 0.2,
-                        callback: function (value) {
-                            return (value * 100) + '%';
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false // 👈 Legende deaktivieren
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        min: 0,
+                        ticks: {
+                            //stepSize: 0.2,
+                            callback: function (value) {
+                                return (value * 100) + '%';
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    }
 }
 
 function drawSpeedGraph() {

@@ -72,7 +72,8 @@
 
                         <article class="media mb-4">
                             <figure class="media-left">
-                                <span class="icon is-large has-text-info"><i class="fas fa-tachometer-alt fa-2x"></i></span>
+                                <span class="icon is-large has-text-info"><i
+                                        class="fas fa-tachometer-alt fa-2x"></i></span>
                             </figure>
                             <div class="media-content">
                                 <p class="heading">Rumpfgeschwindigkeit</p>
@@ -102,6 +103,44 @@
                                 <p class="title is-5">{{ trip.duration|default:"–" }}</p>
                             </div>
                         </article>
+
+
+                        {% with data.weather.0 as weather %}
+                        <!-- Lufttemperatur -->
+                        <article class="media mb-5">
+                            <figure class="media-left">
+                            <span class="icon is-large has-text-info">
+                                <i class="fas fa-thermometer-half fa-2x"></i>
+                            </span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Lufttemperatur</p>
+                                <p class="title is-5">
+
+                                    {{ weather.temperature|default:"–" }}
+
+                                    &nbsp;°C
+                                </p>
+                            </div>
+                        </article>
+
+                        <!-- Windgeschwindigkeit -->
+                        <article class="media mb-5">
+                            <figure class="media-left">
+                            <span class="icon is-large has-text-info">
+                                <i class="fas fa-wind fa-2x"></i>
+                            </span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Wind</p>
+                                <p class="title is-5">
+                                    {{ weather.wind_speed|default:"–" }}
+                                    &nbsp;ktn
+                                    {{ weather.wind_direction|floatformat:0|default:"–" }}°
+                                </p>
+                            </div>
+                        </article>
+                        {% endwith %}
 
                         {% if trip.description %}
                         <!-- Beschreibung -->
@@ -148,6 +187,7 @@
                 </div>
             </div>
 
+            {% if data.wind_course_histogram %}
             <div class="column is-6">
                 <div class="card" style="height: 100%;">
                     <div class="card-content">
@@ -158,6 +198,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 </section>

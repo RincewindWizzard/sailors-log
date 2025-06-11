@@ -29,14 +29,15 @@ def trip_detail(request, pk):
     trip.distance_nm = distance_travelled(gpx)
     trip.duration = duration_travelled(gpx)
 
+    wind_course_histogram = calculate_wind_course_histogram(trip)
     context = dict(
         trip=trip,
         hull_speed=trip.boat.hull_speed_kn,
         data=dict(
             gpx=trip.gpx_file.url,
             speed_graph=[dict(time=t[0].isoformat(), speed=t[1]) for t in speed_graph(trip.gpx_points)],
-            weather=trip.weather.to_dict(),
-            wind_course_histogram={k.name: v for k, v in calculate_wind_course_histogram(trip).items()},
+            weather=trip.weather.as_list(),
+            wind_course_histogram={k.name: v for k, v in wind_course_histogram.items()} if wind_course_histogram else None,
             bearing_histogram=bearing_histogram(trip.gpx_points),
         )
     )
@@ -79,7 +80,7 @@ def trip_statistics_json(request, pk):
         trip=trip.to_dict(),
         speed_graph=[dict(time=t[0], speed=t[1]) for t in speed_graph(trip.gpx_points)],
         hull_speed=trip.boat.hull_speed_kn,
-        weather=trip.weather.to_dict(),
+        weather=trip.weather.as_list(),
         wind_course_histogram={k.name: v for k, v in calculate_wind_course_histogram(trip).items()},
         bearing_histogram=bearing_histogram(trip.gpx_points),
     )

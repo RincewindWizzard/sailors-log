@@ -188,20 +188,26 @@ class WeatherTrip(object):
         ).astimezone(datetime.timezone.utc)
         next_hour = previous_hour + datetime.timedelta(hours=1)
 
-        wd_prev = self._hourly_weather[previous_hour].wind_direction
-        wd_next = self._hourly_weather[next_hour].wind_direction
+        if previous_hour in self._hourly_weather and next_hour in self._hourly_weather:
+            wd_prev = self._hourly_weather[previous_hour].wind_direction
+            wd_next = self._hourly_weather[next_hour].wind_direction
 
-        total = (next_hour - previous_hour).total_seconds()
-        elapsed = (instant - previous_hour).total_seconds()
-        factor = elapsed / total
+            total = (next_hour - previous_hour).total_seconds()
+            elapsed = (instant - previous_hour).total_seconds()
+            factor = elapsed / total
 
-        delta = WeatherTrip._shortest_angle_delta(wd_prev, wd_next)
+            delta = WeatherTrip._shortest_angle_delta(wd_prev, wd_next)
 
-        interpolated = (wd_prev + delta * factor) % 360
-        return interpolated
+            interpolated = (wd_prev + delta * factor) % 360
+            return interpolated
+        else:
+            return None
 
     def to_dict(self):
         return {
             ts.isoformat(): ws.to_dict()
             for ts, ws in self._hourly_weather.items()
         }
+
+    def as_list(self):
+        return [v.to_dict() for k, v in sorted(self._hourly_weather.items())]
