@@ -137,22 +137,23 @@ def reduce_points_to_hourly(points: list[GPXTrackPoint]) -> list[tuple[datetime,
 
 
 def calculate_wind_course_histogram(trip: Trip):
-    def data(p0, p1):
+    data_points = [(course, 0.0) for course in WindCourse]
+    for p0, p1 in trip.gpx_lines:
         bearing = calculate_bearing(p0, p1)
         wind_direction = trip.weather.wind_direction_at(p0.time)
         if wind_direction is None:
             raise ValueError(f'Missing wind data for {trip.title}')
         wind_course = WindCourse.for_angle(abs(wind_direction - bearing))
-        return wind_course, (p0.time - p1.time).seconds
+        data_points.append((wind_course, (p0.time - p1.time).seconds))
 
     try:
-        return normalize_histogram(create_histogram([data(*line) for line in trip.gpx_lines]))
+        return normalize_histogram(create_histogram(data_points))
     except ValueError as e:
-        logger.warn(e)
+        logger.warning(e)
         return None
 
 
-def create_histogram(ts: Iterable[tuple[K, V]]) -> Dict[K, V]:
+def create_histogram(ts: Iterable[tuple[K, V]] | list[tuple[K, V]]) -> Dict[K, V]:
     result: Dict[K, V] = {}
     for k, v in ts:
         if k not in result:
