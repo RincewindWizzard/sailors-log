@@ -145,9 +145,9 @@ def calculate_wind_course_histogram(trip: Trip):
             if wind_direction is None:
                 raise ValueError(f'Missing wind data for {trip.title}')
             wind_course = WindCourse.for_angle(abs(wind_direction - bearing))
-            data_points.append((wind_course, (p0.time - p1.time).seconds))
+            data_points.append((wind_course, (p1.time - p0.time).seconds))
 
-            return normalize_histogram(create_histogram(data_points))
+        return normalize_histogram(create_histogram(data_points))
     except ValueError as e:
         logger.warning(e)
         return normalize_histogram(create_histogram(data_points))

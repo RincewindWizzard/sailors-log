@@ -14,7 +14,7 @@ def fetch_weather_for_trip_task(trip_id):
         trip = Trip.objects.get(id=trip_id)
         logger.info(f'Fetching weather data for trip {trip.pk}')
         weather_data_matrix = generate_weather_data_matrix(trip.gpx_points)
-        logger.info(f'Got weather_data_matrix = {weather_data_matrix}')
+
         for instant, lat, lon, weather in weather_data_matrix:
             WeatherSnapshot(
                 trip=trip,

@@ -37,7 +37,6 @@ def fetch_weather(instant: datetime, latitude: float, longitude: float) -> dict:
     response = requests.get(OPEN_METEO_API, params=params)
     response.raise_for_status()
     data = response.json()
-    logger.info(f'Got weather data = {data}')
     return data
 
 
@@ -49,7 +48,7 @@ def generate_weather_data_matrix(points: list[GPXTrackPoint]) -> list[tuple[date
     """
     hourly_weather = []
     hourly_positions = reduce_points_to_hourly(points)
-    logger.info(f'hourly_positions = {hourly_positions}')
+
     for instant, lat, lon in hourly_positions:
         weather = fetch_weather(instant, lat, lon)
         data = weather['hourly']

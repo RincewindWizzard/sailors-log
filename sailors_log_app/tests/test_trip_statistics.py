@@ -12,3 +12,4 @@ def test_create_histogram():
 def test_wind_course():
     for angle in range(0, 360):
         assert WindCourse.for_angle(angle) is not None
+        print(angle, WindCourse.for_angle(angle) )
