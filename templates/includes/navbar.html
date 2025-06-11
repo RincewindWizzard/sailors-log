@@ -18,9 +18,14 @@
             <div class="navbar-item">
                 {% if user.is_authenticated %}
                 <div class="buttons">
+                    <a href="{% url 'admin:index' %}">
+                        <button type="submit" class="button">
+                            Admin
+                        </button>
+                    </a>
                     <form method="post" action="{% url 'logout' %}?next={{ request.path }}">
                         {% csrf_token %}
-                        <button type="submit" class="button is-danger">
+                        <button type="submit" class="button is-danger is-outlined">
                             Log out
                         </button>
                     </form>
