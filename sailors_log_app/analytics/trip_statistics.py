@@ -6,7 +6,7 @@ import gpxpy
 import gpxpy.gpx
 from gpxpy.gpx import GPX, GPXTrackPoint
 from geopy.distance import geodesic
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 
 
 def distance_travelled(gpx: GPX) -> float:
@@ -50,7 +50,7 @@ def extract_line_segments(gpx: GPX) -> Iterable[tuple[GPXTrackPoint, GPXTrackPoi
 
 def course_histogram(gpx: GPX, buckets=16) -> list[float]:
     bearings = [
-        calculate_initial_compass_bearing(*line)
+        calculate_bearing(*line)
         for line in extract_line_segments(gpx)
     ]
 
@@ -68,6 +68,13 @@ def course_histogram(gpx: GPX, buckets=16) -> list[float]:
     return bearing_histogram_normalized
 
 
+def normalize_histogram(hist: dict) -> dict:
+    total = sum(hist.values())
+    if total == 0:
+        return hist
+    return {k: v / total for k, v in hist.items()}
+
+
 def speed_graph(gpx: GPX):
     result = []
     for start, end in extract_line_segments(gpx):
@@ -81,7 +88,7 @@ def speed_graph(gpx: GPX):
     return result
 
 
-def calculate_initial_compass_bearing(point_a: GPXTrackPoint, point_b: GPXTrackPoint) -> float:
+def calculate_bearing(point_a: GPXTrackPoint, point_b: GPXTrackPoint) -> float:
     lat1 = math.radians(point_a.latitude)
     lat2 = math.radians(point_b.latitude)
     diff_long = math.radians(point_b.longitude - point_a.longitude)
@@ -93,3 +100,33 @@ def calculate_initial_compass_bearing(point_a: GPXTrackPoint, point_b: GPXTrackP
     initial_bearing = math.degrees(initial_bearing)
     compass_bearing = (initial_bearing + 360) % 360
     return compass_bearing
+
+
+def reduce_points_to_hourly(points: list[GPXTrackPoint]) -> list[tuple[datetime, float, float]]:
+    """
+    Reduces a list of GPXTrackPoints to only one (average) position every hour using groupby.
+    """
+    # Stelle sicher, dass die Punkte nach Zeit sortiert sind
+    points = sorted(points, key=lambda p: p.time)
+
+    def hour_key(point):
+        # Runde die Zeit auf die volle Stunde in UTC
+        return datetime(
+            year=point.time.year,
+            month=point.time.month,
+            day=point.time.day,
+            hour=point.time.hour,
+            tzinfo=point.time.tzinfo
+        ).astimezone(timezone.utc)
+
+    hourly_positions = []
+
+    for hour, group in itertools.groupby(points, key=hour_key):
+        group_list = list(group)
+        lat_avg = sum(p.latitude for p in group_list) / len(group_list)
+        lon_avg = sum(p.longitude for p in group_list) / len(group_list)
+        hourly_positions.append((hour, lat_avg, lon_avg))
+
+    last_position = hourly_positions[-1]
+    hourly_positions.append((last_position[0] + timedelta(hours=1), last_position[1], last_position[2]))
+    return hourly_positions

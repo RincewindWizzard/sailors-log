@@ -1,6 +1,4 @@
-import json
-
-from sailors_log_app.weather import parse_weather
+from sailors_log_app.services.weather import parse_weather
 
 data = {
     'latitude': 54.86,

@@ -1,3 +1,5 @@
+import datetime
+from datetime import timezone
 from math import sqrt
 
 import gpxpy
@@ -48,6 +50,12 @@ class Trip(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def weather(self):
+        if not hasattr(self, '_weather') or self._weather is None:
+            self._weather = WeatherTrip(self)
+        return self._weather
+
+    @property
     def gpx_points(self) -> list[GPXTrackPoint]:
         if not hasattr(self, '_gpx_points'):
             self._gpx_points = []
@@ -57,6 +65,10 @@ class Trip(models.Model):
                     for point in segment.points:
                         self._gpx_points.append(point)
         return self._gpx_points
+
+    @property
+    def gpx_lines(self):
+        return zip(self.gpx_points[:-1], self.gpx_points[1:])
 
     def _parse_gpx(self):
         self.gpx_file.seek(0)  # Datei-Zeiger auf Anfang setzen
@@ -106,3 +118,76 @@ class WeatherSnapshot(models.Model):
 
     def __str__(self):
         return f"{self.trip} – {self.timestamp}"
+
+    def to_dict(self):
+        return {
+            "timestamp": self.timestamp.isoformat(),
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "temperature": self.temperature,
+            "rain": self.rain,
+            "weather_code": self.weather_code,
+            "visibility": self.visibility,
+            "wind_direction": self.wind_direction,
+            "wind_speed": self.wind_speed,
+            "wind_gusts": self.wind_gusts,
+            "cloud_cover": self.cloud_cover,
+            "cloud_cover_low": self.cloud_cover_low,
+            "cloud_cover_mid": self.cloud_cover_mid,
+            "cloud_cover_high": self.cloud_cover_high,
+            "pressure_msl": self.pressure_msl,
+            "surface_pressure": self.surface_pressure,
+        }
+
+
+class WeatherTrip(object):
+    """
+    This is a container object for multiple WeatherSnapshots following a route given by a Trip.
+    It can be used to interpolate data
+    """
+
+    def __init__(self, trip: Trip):
+        super().__init__()
+        self._hourly_weather = {
+            ws.timestamp.astimezone(timezone.utc): ws
+            for ws in trip.weather_snapshots.all()
+        }
+
+    @staticmethod
+    def _shortest_angle_delta(a: float, b: float):
+        """
+        Gibt die kleinstmögliche (signierte) Winkeländerung von a nach b zurück,
+        im Bereich (-180, +180].
+        """
+        delta = (b - a + 180) % 360 - 180
+        return delta
+
+    def wind_direction_at(self, instant: datetime.datetime):
+        previous_hour = datetime.datetime(
+            year=instant.year,
+            month=instant.month,
+            day=instant.day,
+            hour=instant.hour,
+            tzinfo=instant.tzinfo
+        ).astimezone(datetime.timezone.utc)
+        next_hour = previous_hour + datetime.timedelta(hours=1)
+
+        wd_prev = self._hourly_weather[previous_hour].wind_direction
+        wd_next = self._hourly_weather[next_hour].wind_direction
+
+        total = (next_hour - previous_hour).total_seconds()
+        elapsed = (instant - previous_hour).total_seconds()
+        factor = elapsed / total
+
+        delta = WeatherTrip._shortest_angle_delta(wd_prev, wd_next)
+
+        interpolated = (wd_prev + delta * factor) % 360
+        return interpolated
+
+    def to_dict(self):
+        return {
+            "hourly_weather_list": {
+                ts.isoformat(): ws.to_dict()  # ts ist datetime, ws muss auch serialisierbar sein
+                for ts, ws in self._hourly_weather.items()
+            }
+        }

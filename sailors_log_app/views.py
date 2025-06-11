@@ -1,15 +1,14 @@
-import datetime
-
 import gpxpy
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
+from .constants import WindCourse
 from .forms import TripForm
-from .models import Trip, Boat, WeatherSnapshot
-from .trip_statistics import distance_travelled, duration_travelled, course_histogram, speed_graph
-from .weather import reduce_points_to_hourly, fetch_weather, generate_weather_data_matrix
+from .models import Trip, Boat
+from sailors_log_app.analytics.trip_statistics import distance_travelled, duration_travelled, course_histogram, speed_graph, calculate_bearing, \
+    normalize_histogram
 
 
 def trip_list(request):
@@ -65,29 +64,33 @@ def boat_statistics(request):
 
 
 def trip_weather_statistics(request, pk):
-    trip = get_object_or_404(Trip, pk=pk)
+    trip: Trip = get_object_or_404(Trip, pk=pk)
 
-    hourly_weather = generate_weather_data_matrix(trip.gpx_points)
+    weather = trip.weather
 
-    for instant, lat, lon, weather in hourly_weather:
-        WeatherSnapshot(
-            trip=trip,
-            timestamp=instant,
-            latitude=lat,
-            longitude=lon,
-            temperature=weather['temperature_2m'],
-            rain=weather['rain'],
-            wind_speed=weather['wind_speed_10m'],
-            wind_gusts=weather['wind_gusts_10m'],
-            wind_direction=weather['wind_direction_10m'],
-            cloud_cover=weather['cloud_cover'],
-            pressure_msl=weather['pressure_msl'],
-            surface_pressure=weather['surface_pressure'],
-            weather_code=weather['weather_code'],
+    wind_course_histogram = {}
+    foo = []
+    for p0, p1 in trip.gpx_lines:
+        bearing = calculate_bearing(p0, p1)
+        wind_direction = weather.wind_direction_at(p0.time)
+        wind_course = WindCourse.for_angle(abs(wind_direction - bearing))
+        foo.append(
+            dict(
+                time=p0.time,
+                bearing=bearing,
+                wind_direction=wind_direction,
+                wind_angle=abs(wind_direction - bearing),
+                course=WindCourse.for_angle(abs(wind_direction - bearing)).german_name
+            ))
 
-        ).save()
+        if not wind_course in wind_course_histogram:
+            wind_course_histogram[wind_course] = 0
+        wind_course_histogram[wind_course] += (p0.time - p1.time).seconds
 
+    wind_course_histogram = normalize_histogram(wind_course_histogram)
     stats = dict(
-        weather=hourly_weather
+        weather=weather.to_dict(),
+        wind_course_histogram={k.name: v for k, v in wind_course_histogram.items()},
+        foo=foo
     )
     return JsonResponse(stats)

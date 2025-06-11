@@ -1,11 +1,13 @@
 import logging
 from datetime import timedelta, datetime, timezone, tzinfo
+from itertools import groupby
 from typing import Iterable, Any
 
 import requests
 from django.utils.timezone import make_aware
 from gpxpy.gpx import GPXTrackPoint
 
+from sailors_log_app.analytics.trip_statistics import reduce_points_to_hourly
 from sailors_log_app.models import Trip, WeatherSnapshot
 
 logger = logging.getLogger(__name__)
@@ -37,37 +39,6 @@ def fetch_weather(instant: datetime, latitude: float, longitude: float) -> dict:
     data = response.json()
     logger.info(f'Got weather data = {data}')
     return data
-
-
-def reduce_points_to_hourly(points: list[GPXTrackPoint]) -> list[tuple[datetime, float, float]]:
-    """
-    Reduces a list of GPXTrackPoints to only one (average) position every hour.
-    """
-    hourly_positions = []
-    current_hour = None
-    current_positions = []
-    for point in points:
-        hour = datetime(
-            year=point.time.year,
-            month=point.time.month,
-            day=point.time.day,
-            hour=point.time.hour,
-            tzinfo=timezone.utc
-        )
-
-        if current_hour == hour or not current_hour or len(current_positions) == 0:
-            current_positions.append((point.latitude, point.longitude))
-            current_hour = hour
-        else:
-            lat_sum = 0
-            lon_sum = 0
-            for lat, lon in current_positions:
-                lat_sum += lat
-                lon_sum += lon
-            hourly_positions.append(
-                (hour, float(lat_sum / len(current_positions)), float(lon_sum / len(current_positions))))
-            current_positions = []
-    return hourly_positions
 
 
 def generate_weather_data_matrix(points: list[GPXTrackPoint]) -> list[tuple[datetime, float, float, dict]]:

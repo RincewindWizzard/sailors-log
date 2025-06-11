@@ -7,10 +7,9 @@ logger = logging.getLogger(__name__)
 
 @background(schedule=0)
 def fetch_weather_for_trip_task(trip_id):
-    import json
     from .models import Trip
     from sailors_log_app.models import WeatherSnapshot
-    from sailors_log_app.weather import generate_weather_data_matrix
+    from sailors_log_app.services.weather import generate_weather_data_matrix
     try:
         trip = Trip.objects.get(id=trip_id)
         logger.info(f'Fetching weather data for trip {trip.pk}')
