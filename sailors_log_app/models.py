@@ -88,7 +88,7 @@ class Trip(models.Model):
 
     def _parse_gpx(self):
         self.gpx_file.seek(0)  # Datei-Zeiger auf Anfang setzen
-
+        # TODO: thats ugly
         gpx = gpxpy.parse(self.gpx_file.read().decode("utf-8"))
 
         total_length_m = 0
@@ -188,20 +188,23 @@ class WeatherTrip(object):
         ).astimezone(datetime.timezone.utc)
         next_hour = previous_hour + datetime.timedelta(hours=1)
 
-        if previous_hour in self._hourly_weather and next_hour in self._hourly_weather:
-            wd_prev = self._hourly_weather[previous_hour].wind_direction
-            wd_next = self._hourly_weather[next_hour].wind_direction
-
-            total = (next_hour - previous_hour).total_seconds()
-            elapsed = (instant - previous_hour).total_seconds()
-            factor = elapsed / total
-
-            delta = WeatherTrip._shortest_angle_delta(wd_prev, wd_next)
-
-            interpolated = (wd_prev + delta * factor) % 360
-            return interpolated
-        else:
+        if previous_hour not in self._hourly_weather or next_hour not in self._hourly_weather:
             return None
+
+        wd_prev = self._hourly_weather[previous_hour].wind_direction
+        wd_next = self._hourly_weather[next_hour].wind_direction
+
+        if wd_prev is not None or wd_next is not None:
+            return None
+
+        total = (next_hour - previous_hour).total_seconds()
+        elapsed = (instant - previous_hour).total_seconds()
+        factor = elapsed / total
+
+        delta = WeatherTrip._shortest_angle_delta(wd_prev, wd_next)
+
+        interpolated = (wd_prev + delta * factor) % 360
+        return interpolated
 
     def to_dict(self):
         return {
