@@ -41,6 +41,21 @@ class Trip(models.Model):
     def __str__(self):
         return f"{self.date} – {self.title}"
 
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "boat": self.boat.name,
+            "date": self.date.isoformat(),
+            "description": self.description,
+            "distance_nm": self.distance_nm,
+            "duration": str(self.duration) if self.duration else None,
+            "gpx": [dict(
+                time=p.time.isoformat(),
+                latitude=p.latitude,
+                longitude=p.longitude
+            ) for p in self.gpx_points]
+        }
+
     def save(self, *args, **kwargs):
         if self.gpx_file:
             self._parse_gpx()
@@ -59,7 +74,8 @@ class Trip(models.Model):
     def gpx_points(self) -> list[GPXTrackPoint]:
         if not hasattr(self, '_gpx_points'):
             self._gpx_points = []
-            gpx = gpxpy.parse(self.gpx_file.read().decode("utf-8"))
+            with self.gpx_file.open("rb") as f:
+                gpx = gpxpy.parse(f.read().decode("utf-8"))
             for track in gpx.tracks:
                 for segment in track.segments:
                     for point in segment.points:
@@ -186,8 +202,6 @@ class WeatherTrip(object):
 
     def to_dict(self):
         return {
-            "hourly_weather_list": {
-                ts.isoformat(): ws.to_dict()  # ts ist datetime, ws muss auch serialisierbar sein
-                for ts, ws in self._hourly_weather.items()
-            }
+            ts.isoformat(): ws.to_dict()
+            for ts, ws in self._hourly_weather.items()
         }

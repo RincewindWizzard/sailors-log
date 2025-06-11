@@ -1,3 +1,5 @@
+import json
+
 import gpxpy
 from django.db.models import Sum
 from django.http import JsonResponse
@@ -7,9 +9,10 @@ from django.views.decorators.http import require_POST
 from .constants import WindCourse
 from .forms import TripForm
 from .models import Trip, Boat
-from sailors_log_app.analytics.trip_statistics import distance_travelled, duration_travelled, course_histogram, \
+from sailors_log_app.analytics.trip_statistics import distance_travelled, duration_travelled, bearing_histogram, \
     speed_graph, calculate_bearing, \
     normalize_histogram, calculate_wind_course_histogram
+from .serializers import TripSerializer
 
 
 def trip_list(request):
@@ -28,9 +31,14 @@ def trip_detail(request, pk):
 
     context = dict(
         trip=trip,
-        course_histogram=course_histogram(gpx),
-        speed_graph=[dict(x=t[0], y=t[1]) for t in speed_graph(gpx)],
-        hull_speed=trip.boat.hull_speed_kn
+        hull_speed=trip.boat.hull_speed_kn,
+        data=dict(
+            gpx=trip.gpx_file.url,
+            speed_graph=[dict(time=t[0].isoformat(), speed=t[1]) for t in speed_graph(trip.gpx_points)],
+            weather=trip.weather.to_dict(),
+            wind_course_histogram={k.name: v for k, v in calculate_wind_course_histogram(trip).items()},
+            bearing_histogram=bearing_histogram(trip.gpx_points),
+        )
     )
 
     return render(request, 'trip_detail.html', context)
@@ -67,12 +75,12 @@ def boat_statistics(request):
 def trip_statistics_json(request, pk):
     trip: Trip = get_object_or_404(Trip, pk=pk)
 
-    wind_course_histogram = calculate_wind_course_histogram(trip)
-
-
     stats = dict(
+        trip=trip.to_dict(),
+        speed_graph=[dict(time=t[0], speed=t[1]) for t in speed_graph(trip.gpx_points)],
+        hull_speed=trip.boat.hull_speed_kn,
         weather=trip.weather.to_dict(),
-        wind_course_histogram={k.name: v for k, v in wind_course_histogram.items()},
-        bearing_histogram=course_histogram(trip.gpx_points),
+        wind_course_histogram={k.name: v for k, v in calculate_wind_course_histogram(trip).items()},
+        bearing_histogram=bearing_histogram(trip.gpx_points),
     )
     return JsonResponse(stats)

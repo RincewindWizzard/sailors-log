@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'background_task',
     'sailors_log_app.apps.SailorsLogAppConfig',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

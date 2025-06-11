@@ -22,28 +22,25 @@ V = TypeVar('V', bound=SupportsAdd)
 
 
 def distance_travelled(gpx: GPX) -> float:
-    total_distance = 0.0
-    for track in gpx.tracks:
-        for segment in track.segments:
-            points = segment.points
-            for i in range(1, len(points)):
-                start = (points[i - 1].latitude, points[i - 1].longitude)
-                end = (points[i].latitude, points[i].longitude)
-                total_distance += geodesic(start, end).nm
-    return total_distance
+    return sum([
+        geodesic(
+            (start.latitude, start.longitude),
+            (end.latitude, end.longitude)
+        ).nm
+        for start, end in extract_line_segments(list(extract_points(gpx)))
+    ])
 
 
 def duration_travelled(gpx: GPX) -> timedelta:
+    points = list(extract_points(gpx))
     start_time: datetime | None = None
     end_time: datetime | None = None
-    for track in gpx.tracks:
-        for segment in track.segments:
-            points = segment.points
-            if points:
-                if not start_time or points[0].time < start_time:
-                    start_time = points[0].time
-                if not end_time or points[-1].time > end_time:
-                    end_time = points[-1].time
+
+    for point in extract_points(gpx):
+        if not start_time or point.time < start_time:
+            start_time = point.time
+        if not end_time or point.time > end_time:
+            end_time = point.time
 
     return end_time - start_time
 
@@ -59,9 +56,10 @@ def extract_line_segments(points: list[GPXTrackPoint]) -> Iterable[tuple[GPXTrac
     return zip(points[:-1], points[1:])
 
 
-def course_histogram(points: list[GPXTrackPoint], buckets=16) -> dict[int, SupportsAdd | Any]:
+def bearing_histogram(points: list[GPXTrackPoint], buckets=16) -> dict[int, SupportsAdd | Any]:
+    bucket_names = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
     def bucket(bearing: float) -> int:
-        return round((bearing % 360) / 360 * buckets) % buckets
+        return bucket_names[round((bearing % 360) / 360 * buckets) % buckets]
 
     def data(p0, p1):
         return bucket(calculate_bearing(p0, p1)), (p1.time - p0.time).seconds
@@ -72,17 +70,21 @@ def course_histogram(points: list[GPXTrackPoint], buckets=16) -> dict[int, Suppo
     )
 
 
-def speed_graph(gpx: GPX):
-    result = []
-    for start, end in extract_line_segments(gpx):
-        time_delta = end.time - start.time
-        distance = geodesic((start.latitude, start.longitude), (end.latitude, end.longitude)).nm
-        hours = time_delta.seconds / 60 / 60
-        result.append((
-            (start.time + (time_delta / 2)).isoformat(),
-            distance / hours)
+def speed(start: GPXTrackPoint, end: GPXTrackPoint) -> float:
+    time_delta = end.time - start.time
+    distance = geodesic((start.latitude, start.longitude), (end.latitude, end.longitude)).nm
+    hours = time_delta.seconds / 60 / 60
+    return distance / hours
+
+
+def speed_graph(points: list[GPXTrackPoint]):
+    return [
+        (
+            start.time + (end.time - start.time) / 2,
+            speed(start, end)
         )
-    return result
+        for start, end in extract_line_segments(points)
+    ]
 
 
 def calculate_bearing(point_a: GPXTrackPoint, point_b: GPXTrackPoint) -> float:
