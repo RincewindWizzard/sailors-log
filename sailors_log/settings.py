@@ -16,7 +16,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 ENVIRONMENT = config('ENVIRONMENT', default=DEV)
-DEBUG = True if ENVIRONMENT == DEV else False
+DEBUG = config('DEBUG', default=False, cast=bool)
 SECRET_KEY = config('SECRET_KEY', default='unsafe-secret-key-please-change')
 
 if SECRET_KEY == 'unsafe-secret-key-please-change' and ENVIRONMENT == PROD:
