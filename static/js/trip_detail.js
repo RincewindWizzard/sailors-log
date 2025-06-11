@@ -1,6 +1,9 @@
 "use strict";
 console.log("Hallo Trip Detail!");
 
+const data = JSON.parse(document.getElementById('trip-data').textContent);
+console.log(data);
+
 function drawMap() {
     const map = L.map('map');
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -10,7 +13,7 @@ function drawMap() {
         attribution: 'Map: © OpenSeaMap contributors',
     }).addTo(map);
 
-    new L.GPX(gpx, {
+    new L.GPX(data.gpx, {
         async: true,
         marker_options: {
             startIconUrl: 'https://unpkg.com/leaflet-gpx@1.5.1/pin-icon-start.png',
@@ -50,23 +53,107 @@ function drawMap() {
 
 function drawBearingsHistogram() {
     const ctx = document.getElementById('bearings_histogram');
-
+    const labels = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const dataValues = labels.map(label => data.bearing_histogram[label] || 0);
     new Chart(ctx, {
         type: 'radar',
         data: {
             labels: ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'],
             datasets: [{
                 label: 'Kurse und ihre Anteil am Gesamttörn',
-                data: course_histogram,
+                data: dataValues,
                 borderWidth: 1
             }]
         },
+
         options: {
-            r: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function (value, index, ticks) {
-                        return (value * 100) + '%';
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false // 👈 Legende deaktivieren
+                }
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    min: 0,
+                    ticks: {
+                        //stepSize: 0.2,
+                        callback: function (value) {
+                            return (value * 100) + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+function drawWindCourseHistogram() {
+    const ctx = document.getElementById('wind_course_histogram');
+    const wind_course_histogram = data.wind_course_histogram;
+    console.log(wind_course_histogram);
+    /*
+    NO_GO_ZONE = (330, 30)
+
+    CLOSE_HAULED_STARBOARD = (30, 45)
+    HAULED_STARBOARD = (45, 80)
+    BEAM_REACH_STARBOARD = (80, 100)
+    BROAD_REACH_STARBOARD = (100, 160)
+
+    RUNNING = (160, 200)
+
+    CLOSE_HAULED_PORT = (315, 330)
+    HAULED_PORT = (280, 315)
+    BEAM_REACH_PORT = (260, 280)
+    BROAD_REACH_PORT = (200, 260)
+    * */
+
+    var labels = ["Toter Winkel", "Hart am Wind", "Am Wind", "Halbwind", "Raumschots", "Vorwind"];
+    labels = labels.concat(labels.slice(1, -1).reverse());
+    const dataValues = [
+        wind_course_histogram.NO_GO_ZONE,
+        wind_course_histogram.CLOSE_HAULED_STARBOARD,
+        wind_course_histogram.HAULED_STARBOARD,
+        wind_course_histogram.BEAM_REACH_STARBOARD,
+        wind_course_histogram.BROAD_REACH_STARBOARD,
+        wind_course_histogram.RUNNING,
+        wind_course_histogram.BROAD_REACH_PORT,
+        wind_course_histogram.BEAM_REACH_PORT,
+        wind_course_histogram.HAULED_PORT,
+        wind_course_histogram.CLOSE_HAULED_PORT
+    ];
+
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Prozentualer Anteil der Windkurse zum Gesamttörn',
+                data: dataValues,
+                borderWidth: 1,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false // 👈 Legende deaktivieren
+                }
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    min: 0,
+                    ticks: {
+                        //stepSize: 0.2,
+                        callback: function (value) {
+                            return (value * 100) + '%';
+                        }
                     }
                 }
             }
@@ -76,6 +163,11 @@ function drawBearingsHistogram() {
 
 function drawSpeedGraph() {
     const ctx = document.getElementById('speed_graph');
+
+    const speed_graph = data.speed_graph.map(entry => ({
+        x: entry.time,
+        y: entry.speed
+    }));
 
     new Chart(ctx, {
         type: 'line',
@@ -117,3 +209,4 @@ function drawSpeedGraph() {
 drawMap()
 drawBearingsHistogram()
 drawSpeedGraph()
+drawWindCourseHistogram()

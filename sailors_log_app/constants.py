@@ -1,36 +1,56 @@
 from enum import Enum
+from typing import Optional
 
 
 class WindCourse(Enum):
-    NO_GO_ZONE = (0, 30, "Toter Winkel")
-    CLOSE_HAULED = (30, 45, "Hart am Wind")
-    HAULED = (45, 80, "am Wind")
-    BEAM_REACH = (80, 100, "Halber Wind")
-    BROAD_REACH = (100, 160, "Raumschots")
-    RUNNING = (160, 180, "Vorm Wind")
+    """
+    WindCourse represents the sailing course relative to wind direction.
+    Each entry includes the angle range (in degrees) and whether the wind
+    comes from port (Backbord) or starboard (Steuerbord).
+    """
 
-    def __init__(self, min_angle, max_angle, german_name):
-        self.min_angle = min_angle
+    NO_GO_ZONE = (330, 30)
+
+    CLOSE_HAULED_PORT = (315, 330)
+    CLOSE_HAULED_STARBOARD = (30, 45)
+
+    HAULED_PORT = (280, 315)
+    HAULED_STARBOARD = (45, 80)
+
+    BEAM_REACH_PORT = (260, 280)
+    BEAM_REACH_STARBOARD = (80, 100)
+
+    BROAD_REACH_PORT = (200, 260)
+    BROAD_REACH_STARBOARD = (100, 160)
+
+    RUNNING = (160, 200)
+
+    def __init__(self, min_angle: float, max_angle: float):
+        super().__init__()
+        self.min_angle = min_angle  # Degrees, 0–360
         self.max_angle = max_angle
-        self.german_name = german_name
 
     @classmethod
-    def for_angle(cls, angle: float) -> "WindCourse | None":
+    def for_angle(cls, angle: float) -> Optional["WindCourse"]:
         """
-        Returns the WindCourse enum member that matches the given angle in degrees,
-        using the smallest angle to the wind (0°..180°).
+        Classifies a wind angle (0–360°) relative to the bow into a specific WindCourse.
 
-        Parameters:
-            angle (float): The angle in degrees to classify.
+        Args:
+            angle (float): The wind angle in degrees relative to the bow (0° = head to wind).
 
         Returns:
-            WindCourse or None: The matching WindCourse member if found, else None.
+            WindCourse or None: The matching course including wind side, or None if undefined.
         """
-        angle = angle % 360
-        if angle > 180:
-            angle = 360 - angle
+
+        def course_between(begin, angle, end):
+            angle = angle % 360
+            if begin < end:
+                return begin <= angle <= end
+            else:
+                return begin <= angle <= end + 360 or begin - 360 <= angle <= end
 
         for course in cls:
-            if course.min_angle <= angle <= course.max_angle:
+            if course_between(course.min_angle, angle, course.max_angle):
                 return course
-        return None
+
+        raise ValueError(f'Could not find WindCourse for {angle}')

@@ -11,10 +11,7 @@
 <script src="{% static 'js/chart.js' %}"></script>
 <script src="{% static 'js/chartjs-adapter-date-fns.js' %}"></script>
 
-<script type="application/json" id="trip_data">
-    {{ data | safe }}
-</script>
-
+{{ data|json_script:"trip-data" }}
 
 <script src="{% static 'js/trip_detail.js' %}" defer></script>
 {% endblock %}
@@ -143,9 +140,20 @@
             <div class="column is-6">
                 <div class="card" style="height: 100%;">
                     <div class="card-content">
-                        <h2 class="title is-5 mb-3">Kursverteilung</h2>
+                        <h2 class="title is-5 mb-3">Kompasskurse</h2>
                         <div class="square-wrapper">
                             <canvas id="bearings_histogram" style="width: 100%; height: 100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="card" style="height: 100%;">
+                    <div class="card-content">
+                        <h2 class="title is-5 mb-3">Windkurse</h2>
+                        <div class="square-wrapper">
+                            <canvas id="wind_course_histogram" style="width: 100%; height: 100%;"></canvas>
                         </div>
                     </div>
                 </div>
