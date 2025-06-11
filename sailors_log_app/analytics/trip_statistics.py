@@ -1,12 +1,24 @@
 import itertools
 import math
-from typing import Iterable
 
-import gpxpy
-import gpxpy.gpx
+from typing import Iterable, TypeVar, Dict, Hashable, Protocol, runtime_checkable, Any
+
 from gpxpy.gpx import GPX, GPXTrackPoint
 from geopy.distance import geodesic
 from datetime import timedelta, datetime, timezone
+
+from sailors_log_app.constants import WindCourse
+from sailors_log_app.models import Trip
+
+
+@runtime_checkable
+class SupportsAdd(Protocol):
+    def __add__(self, other: 'SupportsAdd') -> 'SupportsAdd':
+        ...
+
+
+K = TypeVar('K', bound=Hashable)
+V = TypeVar('V', bound=SupportsAdd)
 
 
 def distance_travelled(gpx: GPX) -> float:
@@ -43,36 +55,21 @@ def extract_points(gpx: GPX) -> Iterable[GPXTrackPoint]:
                 yield point
 
 
-def extract_line_segments(gpx: GPX) -> Iterable[tuple[GPXTrackPoint, GPXTrackPoint]]:
-    points = list(extract_points(gpx))
+def extract_line_segments(points: list[GPXTrackPoint]) -> Iterable[tuple[GPXTrackPoint, GPXTrackPoint]]:
     return zip(points[:-1], points[1:])
 
 
-def course_histogram(gpx: GPX, buckets=16) -> list[float]:
-    bearings = [
-        calculate_bearing(*line)
-        for line in extract_line_segments(gpx)
-    ]
+def course_histogram(points: list[GPXTrackPoint], buckets=16) -> dict[int, SupportsAdd | Any]:
+    def bucket(bearing: float) -> int:
+        return round((bearing % 360) / 360 * buckets) % buckets
 
-    # ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
-    bearing_histogram = [0] * buckets
+    def data(p0, p1):
+        return bucket(calculate_bearing(p0, p1)), (p1.time - p0.time).seconds
 
-    for bearing in bearings:
-        bearing_bucket = int(((bearing) % 360) / 360 * buckets)
-        bearing_histogram[bearing_bucket] += 1
-
-    total_count = sum(bearing_histogram)
-
-    bearing_histogram_normalized = [float(x) / total_count for x in bearing_histogram]
-
-    return bearing_histogram_normalized
-
-
-def normalize_histogram(hist: dict) -> dict:
-    total = sum(hist.values())
-    if total == 0:
-        return hist
-    return {k: v / total for k, v in hist.items()}
+    return create_normalize_histogram(
+        data(*line)
+        for line in extract_line_segments(points)
+    )
 
 
 def speed_graph(gpx: GPX):
@@ -130,3 +127,33 @@ def reduce_points_to_hourly(points: list[GPXTrackPoint]) -> list[tuple[datetime,
     last_position = hourly_positions[-1]
     hourly_positions.append((last_position[0] + timedelta(hours=1), last_position[1], last_position[2]))
     return hourly_positions
+
+
+def calculate_wind_course_histogram(trip: Trip):
+    def data(p0, p1):
+        bearing = calculate_bearing(p0, p1)
+        wind_direction = trip.weather.wind_direction_at(p0.time)
+        wind_course = WindCourse.for_angle(abs(wind_direction - bearing))
+        return wind_course, (p0.time - p1.time).seconds
+
+    return normalize_histogram(create_histogram([data(*line) for line in trip.gpx_lines]))
+
+
+def create_histogram(ts: Iterable[tuple[K, V]]) -> Dict[K, V]:
+    result: Dict[K, V] = {}
+    for k, v in ts:
+        if k not in result:
+            result[k] = v - v
+        result[k] += v
+    return result
+
+
+def normalize_histogram(hist: Dict[K, V]) -> Dict[K, V]:
+    total = sum(hist.values())
+    if total == 0:
+        return hist
+    return {k: v / total for k, v in hist.items()}
+
+
+def create_normalize_histogram(ts: Iterable[tuple[K, V]]) -> Dict[K, V]:
+    return normalize_histogram(create_histogram(ts))

@@ -7,8 +7,9 @@ from django.views.decorators.http import require_POST
 from .constants import WindCourse
 from .forms import TripForm
 from .models import Trip, Boat
-from sailors_log_app.analytics.trip_statistics import distance_travelled, duration_travelled, course_histogram, speed_graph, calculate_bearing, \
-    normalize_histogram
+from sailors_log_app.analytics.trip_statistics import distance_travelled, duration_travelled, course_histogram, \
+    speed_graph, calculate_bearing, \
+    normalize_histogram, calculate_wind_course_histogram
 
 
 def trip_list(request):
@@ -63,34 +64,15 @@ def boat_statistics(request):
     return render(request, 'boat_statistics.html', {'stats': stats})
 
 
-def trip_weather_statistics(request, pk):
+def trip_statistics_json(request, pk):
     trip: Trip = get_object_or_404(Trip, pk=pk)
 
-    weather = trip.weather
+    wind_course_histogram = calculate_wind_course_histogram(trip)
 
-    wind_course_histogram = {}
-    foo = []
-    for p0, p1 in trip.gpx_lines:
-        bearing = calculate_bearing(p0, p1)
-        wind_direction = weather.wind_direction_at(p0.time)
-        wind_course = WindCourse.for_angle(abs(wind_direction - bearing))
-        foo.append(
-            dict(
-                time=p0.time,
-                bearing=bearing,
-                wind_direction=wind_direction,
-                wind_angle=abs(wind_direction - bearing),
-                course=WindCourse.for_angle(abs(wind_direction - bearing)).german_name
-            ))
 
-        if not wind_course in wind_course_histogram:
-            wind_course_histogram[wind_course] = 0
-        wind_course_histogram[wind_course] += (p0.time - p1.time).seconds
-
-    wind_course_histogram = normalize_histogram(wind_course_histogram)
     stats = dict(
-        weather=weather.to_dict(),
+        weather=trip.weather.to_dict(),
         wind_course_histogram={k.name: v for k, v in wind_course_histogram.items()},
-        foo=foo
+        bearing_histogram=course_histogram(trip.gpx_points),
     )
     return JsonResponse(stats)
