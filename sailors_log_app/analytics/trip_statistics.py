@@ -150,7 +150,7 @@ def calculate_wind_course_histogram(trip: Trip):
         return normalize_histogram(create_histogram(data_points))
     except ValueError as e:
         logger.warning(e)
-        return normalize_histogram(create_histogram(data_points))
+        return None
 
 
 def create_histogram(ts: Iterable[tuple[K, V]] | list[tuple[K, V]]) -> Dict[K, V]:
