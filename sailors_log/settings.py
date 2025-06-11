@@ -15,16 +15,21 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 
-
 ENVIRONMENT = config('ENVIRONMENT', default=DEV)
 DEBUG = True if ENVIRONMENT == DEV else False
 SECRET_KEY = config('SECRET_KEY', default='unsafe-secret-key-please-change')
 
-if SECRET_KEY == 'unsafe-secret-key-please-change' and ENVIRONMENT == 'PROD':
+if SECRET_KEY == 'unsafe-secret-key-please-change' and ENVIRONMENT == PROD:
     raise ValueError('Secret key has not been set!')
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 STATIC_ROOT = config('STATIC_ROOT', default='/tmp/sailors-log')
+
+if ENVIRONMENT == PROD:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -73,7 +78,6 @@ WSGI_APPLICATION = "sailors_log.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
-
 if ENVIRONMENT == PROD:
     DATABASES = {
         "default": dj_database_url.config(
@@ -87,7 +91,6 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
