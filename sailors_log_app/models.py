@@ -194,7 +194,7 @@ class WeatherTrip(object):
         wd_prev = self._hourly_weather[previous_hour].wind_direction
         wd_next = self._hourly_weather[next_hour].wind_direction
 
-        if wd_prev is not None or wd_next is not None:
+        if wd_prev is None or wd_next is None:
             return None
 
         total = (next_hour - previous_hour).total_seconds()
