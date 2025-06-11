@@ -1,6 +1,9 @@
+import dj_database_url
 from decouple import config
 
 from pathlib import Path
+
+from sailors_log.constants import DEV, PROD
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,10 +15,15 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 
-DEBUG = config('DEBUG', default=True, cast=bool)
-SECRET_KEY = config('SECRET_KEY', default='unsafe-secret-key-please-change')
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 
+ENVIRONMENT = config('ENVIRONMENT', default=DEV)
+DEBUG = True if ENVIRONMENT == DEV else False
+SECRET_KEY = config('SECRET_KEY', default='unsafe-secret-key-please-change')
+
+if SECRET_KEY == 'unsafe-secret-key-please-change' and ENVIRONMENT == 'PROD':
+    raise ValueError('Secret key has not been set!')
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 
 # Application definition
 
@@ -64,12 +72,22 @@ WSGI_APPLICATION = "sailors_log.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+
+
+if ENVIRONMENT == PROD:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=config("DATABASE_URL")
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
