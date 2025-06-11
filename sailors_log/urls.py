@@ -19,10 +19,13 @@ from django.contrib import admin
 from django.urls import path, include
 
 from sailors_log import settings
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('sailors_log_app.urls')),
+    path('login/', auth_views.LoginView.as_view(next_page='trip_list'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='trip_list'), name='logout'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,18 +1,14 @@
-import json
-
 import gpxpy
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
-from .constants import WindCourse
 from .forms import TripForm
 from .models import Trip, Boat
 from sailors_log_app.analytics.trip_statistics import distance_travelled, duration_travelled, bearing_histogram, \
-    speed_graph, calculate_bearing, \
-    normalize_histogram, calculate_wind_course_histogram
-from .serializers import TripSerializer
+    speed_graph, calculate_wind_course_histogram
 
 
 def trip_list(request):
@@ -37,7 +33,8 @@ def trip_detail(request, pk):
             gpx=trip.gpx_file.url,
             speed_graph=[dict(time=t[0].isoformat(), speed=t[1]) for t in speed_graph(trip.gpx_points)],
             weather=trip.weather.as_list(),
-            wind_course_histogram={k.name: v for k, v in wind_course_histogram.items()} if wind_course_histogram else None,
+            wind_course_histogram={k.name: v for k, v in
+                                   wind_course_histogram.items()} if wind_course_histogram else None,
             bearing_histogram=bearing_histogram(trip.gpx_points),
         )
     )
@@ -45,6 +42,7 @@ def trip_detail(request, pk):
     return render(request, 'trip_detail.html', context)
 
 
+@login_required
 def create_trip(request):
     if request.method == 'POST':
         form = TripForm(request.POST, request.FILES)
@@ -56,6 +54,7 @@ def create_trip(request):
     return render(request, 'trip_create.html', {'form': form})
 
 
+@login_required
 @require_POST
 def trip_delete(request, pk):
     trip = get_object_or_404(Trip, pk=pk)

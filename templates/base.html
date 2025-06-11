@@ -11,7 +11,9 @@
     {% block head %}{% endblock %}
 </head>
 <body>
+{% block navbar %}
 {% include "includes/navbar.html" %}
+{% endblock %}
 <main>{% block content %}{% endblock %}</main>
 {% include "includes/footer.html" %}
 </body>

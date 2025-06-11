@@ -45,9 +45,11 @@
         <div class="notification is-warning">Keine Törns vorhanden.</div>
         {% endif %}
 
+        {% if user.is_authenticated %}
         <div class="mt-4">
             <a href="{% url 'trip_create' %}" class="button is-primary">Neuer Törn</a>
         </div>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
