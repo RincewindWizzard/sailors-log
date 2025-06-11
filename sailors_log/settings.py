@@ -1,3 +1,5 @@
+import os
+
 import dj_database_url
 from decouple import config
 
@@ -24,6 +26,7 @@ if SECRET_KEY == 'unsafe-secret-key-please-change' and ENVIRONMENT == PROD:
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost', cast=lambda v: [s.strip() for s in v.split(',')])
 STATIC_ROOT = config('STATIC_ROOT', default='/tmp/sailors-log')
+LOG_DIR = config('LOG_DIR', default=None)
 
 if ENVIRONMENT == PROD:
     CSRF_COOKIE_SECURE = True
@@ -114,20 +117,44 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {'class': 'logging.StreamHandler'},
-    },
-    'loggers': {
-        'sailors_log_app': {
-            'handlers': ['console'],
-            'level': 'INFO',  # oder 'DEBUG' für mehr Details
-            'propagate': True,
+if LOG_DIR is not None:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,  # wichtig!
+        'formatters': {
+            'verbose': {
+                'format': '[{levelname}] {asctime} {name} | {message}',
+                'style': '{',
+            },
         },
-    },
-}
+        'handlers': {
+            'file': {
+                'level': 'INFO',
+                'class': 'logging.FileHandler',
+                'filename': os.path.join(LOG_DIR, 'django.log'),
+                'formatter': 'verbose',
+            },
+        },
+        'root': {
+            'handlers': ['file'],
+            'level': 'INFO',
+        },
+    }
+else:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {'class': 'logging.StreamHandler'},
+        },
+        'loggers': {
+            'sailors_log_app': {
+                'handlers': ['console'],
+                'level': 'INFO',  # oder 'DEBUG' für mehr Details
+                'propagate': True,
+            },
+        },
+    }
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
