@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sailors-log
+  labels:
+    managed-by: gitops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sailors-log
+  template:
+    metadata:
+      labels:
+        app: sailors-log
+    spec:
+      containers:
+        - name: sailors-log
+          image: ghcr.io/sgfh-kiel/sailors-log:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /app/media/
+              name: media-files
+            - mountPath: /app/db/
+              name: sqlite-db
+
+
+      imagePullSecrets:
+        - name: ghcr-login
+      volumes:
+        - name: media-files
+          persistentVolumeClaim:
+            claimName: media-files-pvc
+        - name: sqlite-db
+          persistentVolumeClaim:
+            claimName: sqlite-db-pvc

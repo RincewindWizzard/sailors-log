@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sailors-log-tls-ingress
+  labels:
+    managed-by: gitops
+  annotations:
+    spec.ingressClassName: traefik
+    cert-manager.io/cluster-issuer: letsencrypt-issuer
+    traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
+spec:
+  rules:
+    - host: sailors-log.segelgruppe-kiel.de
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sailors-log
+                port:
+                  number: 80
+  tls:
+    - secretName: letsencrypt-http-key
+      hosts:
+        - sailors-log.segelgruppe-kiel.de
