@@ -51,7 +51,8 @@ COPY --from=builder /app /app
 EXPOSE 8000
 
 
-
+ENV DEBUG=true
+ENV ENVIRONMENT=KUBERNETES
 
 # Run Gunicorn server
-CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:80", "config.wsgi:application"]
+CMD ["python", "-m", "gunicorn", "--bind", "0.0.0.0:80", "sailors_log.wsgi:application", "--paste", "static:/app/staticfiles"]

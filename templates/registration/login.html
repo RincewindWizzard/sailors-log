@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+{% load form_filters %}
+
+{% block head %}
+<script src="{% static 'js/trip_create.js' %}" defer></script>
+{% endblock %}
+
+{% block navbar %}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="columns is-centered">
+            <div class="column is-5-tablet is-4-desktop is-3-widescreen">
+                <form method="post" class="box">
+                    {% csrf_token %}
+                    <h1 class="title is-4 has-text-centered">Login</h1>
+
+                    {% if form.errors %}
+                    <div class="notification is-danger">
+                        Benutzername oder Passwort ist falsch.
+                    </div>
+                    {% endif %}
+
+                    <div class="field">
+                        <label class="label">Benutzername</label>
+                        <div class="control has-icons-left">
+                            {{ form.username|add_class:"input" }}
+                            <span class="icon is-small is-left">
+                <i class="fas fa-user"></i>
+              </span>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Passwort</label>
+                        <div class="control has-icons-left">
+                            {{ form.password|add_class:"input" }}
+                            <span class="icon is-small is-left">
+                <i class="fas fa-lock"></i>
+              </span>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <button type="submit" class="button is-fullwidth is-primary">
+                            Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

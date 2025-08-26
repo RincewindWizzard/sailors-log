@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/leaflet.css' %}"/>
+<link rel="stylesheet" href="{% static 'css/trip_detail.css' %}"/>
+
+
+<script src="{% static 'js/leaflet.js' %}"></script>
+<script src="{% static 'js/gpx.min.js' %}"></script>
+<script src="{% static 'js/chart.js' %}"></script>
+<script src="{% static 'js/chartjs-adapter-date-fns.js' %}"></script>
+
+{{ data|json_script:"trip-data" }}
+
+<script src="{% static 'js/trip_detail.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <!-- Titel -->
+        <div class="level mb-4">
+            <div class="level-left">
+                <h1 class="title is-2">{{ trip.title }}</h1>
+            </div>
+            {% if user.is_authenticated %}
+            <div class="level-right">
+                <form method="post" action="{% url 'trip_delete' trip.pk %}"
+                      onsubmit="return confirm('Törn wirklich löschen?');">
+                    {% csrf_token %}
+                    <button type="submit" class="button is-danger is-light" title="Törn löschen">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        <div class="columns is-multiline is-variable is-6">
+            <!-- Karte -->
+            <div class="column is-8">
+                <div class="card is-flex is-flex-direction-column" style="height: 100%;">
+                    <div class="card-content p-0" style="position: relative; flex-grow: 1;">
+                        <div id="map" style="width: 100%; height: 100%; min-height: 50vh;"></div>
+                        <button id="fullscreenBtn" class="button is-link is-light"
+                                style="position: absolute; top: 1rem; right: 1rem; z-index: 1000;">
+                            <span class="icon"><i class="fas fa-expand"></i></span>
+                            <span>Vollbild</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Infos + Beschreibung -->
+            <div class="column is-4">
+                <div class="card is-flex is-flex-direction-column" style="height: 100%;">
+                    <div class="card-content" style="flex-grow: 1;">
+                        <!-- Boot -->
+                        <article class="media mb-4">
+                            <figure class="media-left">
+                                <span class="icon is-large has-text-info"><i class="fas fa-ship fa-2x"></i></span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Boot</p>
+                                {% if trip.boat.info_url %}
+                                <p><a href="{{ trip.boat.info_url }}" target="_blank" class="title is-5 has-text-link">
+                                    {{ trip.boat.name }}
+                                </a></p>
+                                {% else %}
+                                <p class="title is-5">{{ trip.boat.name }}</p>
+                                {% endif %}
+                            </div>
+                        </article>
+
+                        <article class="media mb-4">
+                            <figure class="media-left">
+                                <span class="icon is-large has-text-info"><i
+                                        class="fas fa-tachometer-alt fa-2x"></i></span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Rumpfgeschwindigkeit</p>
+                                <p class="title is-5">{{ hull_speed }} ktn</p>
+                            </div>
+                        </article>
+
+
+                        <!-- Distanz -->
+                        <article class="media mb-4">
+                            <figure class="media-left">
+                                <span class="icon is-large has-text-info"><i class="fas fa-ruler-horizontal fa-2x"></i></span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Distanz</p>
+                                <p class="title is-5">{{ trip.distance_nm|floatformat:2|intcomma|default:"–" }} sm</p>
+                            </div>
+                        </article>
+
+                        <!-- Dauer -->
+                        <article class="media mb-5">
+                            <figure class="media-left">
+                                <span class="icon is-large has-text-info"><i class="fas fa-clock fa-2x"></i></span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Dauer</p>
+                                <p class="title is-5">{{ trip.duration|default:"–" }}</p>
+                            </div>
+                        </article>
+
+
+                        {% with data.weather.0 as weather %}
+                        <!-- Lufttemperatur -->
+                        <article class="media mb-5">
+                            <figure class="media-left">
+                            <span class="icon is-large has-text-info">
+                                <i class="fas fa-thermometer-half fa-2x"></i>
+                            </span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Lufttemperatur</p>
+                                <p class="title is-5">
+
+                                    {{ weather.temperature|default:"–" }}
+
+                                    &nbsp;°C
+                                </p>
+                            </div>
+                        </article>
+
+                        <!-- Windgeschwindigkeit -->
+                        <article class="media mb-5">
+                            <figure class="media-left">
+                            <span class="icon is-large has-text-info">
+                                <i class="fas fa-wind fa-2x"></i>
+                            </span>
+                            </figure>
+                            <div class="media-content">
+                                <p class="heading">Wind</p>
+                                <p class="title is-5">
+                                    {{ weather.wind_speed|default:"–" }}
+                                    &nbsp;ktn
+                                    {{ weather.wind_direction|floatformat:0|default:"–" }}°
+                                </p>
+                            </div>
+                        </article>
+                        {% endwith %}
+
+                        {% if trip.description %}
+                        <!-- Beschreibung -->
+                        <div class="content mt-5">
+                            <h2 class="title is-6">Beschreibung</h2>
+                            <p style="line-height: 1.6; font-size: 1.05rem;">{{ trip.description|linebreaks }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- GPX Download Button unten links -->
+                    {% if trip.gpx_file %}
+                    <div style="padding: 1rem;">
+                        <a href="{{ trip.gpx_file.url }}" class="button is-link is-light" download>
+                            <span class="icon"><i class="fas fa-download"></i></span>
+                            <span>GPX-Datei herunterladen</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+
+            <!-- Diagramme -->
+            <div class="column is-6">
+                <div class="card" style="height: 100%;">
+                    <div class="card-content">
+                        <h2 class="title is-5 mb-3">Geschwindigkeit</h2>
+                        <div class="square-wrapper">
+                            <canvas id="speed_graph" style="width: 100%; height: 100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-6">
+                <div class="card" style="height: 100%;">
+                    <div class="card-content">
+                        <h2 class="title is-5 mb-3">Kompasskurse</h2>
+                        <div class="square-wrapper">
+                            <canvas id="bearings_histogram" style="width: 100%; height: 100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if data.wind_course_histogram %}
+            <div class="column is-6">
+                <div class="card" style="height: 100%;">
+                    <div class="card-content">
+                        <h2 class="title is-5 mb-3">Windkurse</h2>
+                        <div class="square-wrapper">
+                            <canvas id="wind_course_histogram" style="width: 100%; height: 100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+.card-link {
+  display: block;
+  color: inherit;        /* Linkfarbe nicht ändern */
+  text-decoration: none; /* Linkunterstreichung entfernen */
+}
+
+.card-link:hover {
+  background-color: #f5f7fa; /* Optional: Hover-Effekt */
+  cursor: pointer;
+}
